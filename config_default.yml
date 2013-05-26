@@ -1,0 +1,6 @@
+---
+pubnub:
+    publish: demo
+    sub: demo
+    secret: 
+

@@ -16,7 +16,7 @@ except ImportError:
 yaml_config_file = open('../config.yml', 'r')
 config_data      = load(yaml_config_file)
 
-## Build the class
+## Build the pubnub class
 pubnub = Pubnub(
     config_data["pubnub"]["publish"],  ## PUBLISH_KEY
     config_data["pubnub"]["sub"],  ## SUBSCRIBE_KEY

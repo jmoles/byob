@@ -3,10 +3,34 @@
 # http://inventwithpython.com/pygame
 # Released under a "Simplified BSD" license
 
-import random, pygame, sys
+import random, pygame, sys, threading, os
 from pygame.locals import *
+from yaml import load
+from lib.Pubnub import Pubnub
 
-FPS = 15
+# Import the YAML Stuff
+try:
+    from yaml import CLoader as Loader, CDumper as Dumper
+except ImportError:
+    from yaml import Loader, Dumper
+
+# Attempt to read the yaml configuration
+yaml_config_file = open('../config.yml', 'r')
+config_data      = load(yaml_config_file)
+
+channel = ''.join("player_control")
+
+## Build the pubnub class
+pubnub = Pubnub(
+    config_data["pubnub"]["publish"],  ## PUBLISH_KEY
+    config_data["pubnub"]["sub"],  ## SUBSCRIBE_KEY
+    config_data["pubnub"]["secret"],    ## SECRET_KEY
+    False    ## SSL_ON?
+)
+
+channel = ''.join("player_control")
+
+FPS = 5
 WINDOWWIDTH = 640
 WINDOWHEIGHT = 480
 CELLSIZE = 20
@@ -40,11 +64,48 @@ def main():
     BASICFONT = pygame.font.Font('freesansbold.ttf', 18)
     pygame.display.set_caption('Wormy')
 
+    configurePubnub()
+
     showStartScreen()
     while True:
         runGame()
         showGameOverScreen()
 
+
+## Subscribe Example
+def receive(message) :
+    if(message == "up"):
+        upEvent = pygame.event.Event(pygame.USEREVENT+1, player=1)
+        pygame.event.post(upEvent)
+    elif (message == "down"):
+        downEvent = pygame.event.Event(pygame.USEREVENT+2, player=1)
+        pygame.event.post(downEvent)
+    elif (message == "left"):
+        leftEvent = pygame.event.Event(pygame.USEREVENT+3, player=1)
+        pygame.event.post(leftEvent)
+    elif (message == "right"):
+        rightEvent = pygame.event.Event(pygame.USEREVENT+4, player=1)
+        pygame.event.post(rightEvent)
+    elif (message == "A"):
+        AEvent = pygame.event.Event(pygame.USEREVENT+5, player=1)
+        pygame.event.post(AEvent) 
+    elif (message == "B"):
+        BEvent = pygame.event.Event(pygame.USEREVENT+6, player=1)
+        pygame.event.post(BEvent) 
+
+def subscribe():
+    while True:
+        pubnub.subscribe({
+            'channel'  : channel,
+            'callback' : receive 
+        })
+
+def configurePubnub():
+    print("My UUID is: " + pubnub.uuid)
+
+    sub_thread=threading.Thread(target=subscribe)
+    sub_thread.daemon=True
+    sub_thread.start()
 
 def runGame():
     # Set a random start point.
@@ -73,6 +134,15 @@ def runGame():
                     direction = DOWN
                 elif event.key == K_ESCAPE:
                     terminate()
+            elif event.type == pygame.USEREVENT+1 and direction != DOWN:
+                direction = UP
+            elif event.type == pygame.USEREVENT+2 and direction != UP:
+                direction = DOWN
+            elif event.type == pygame.USEREVENT+3 and direction != RIGHT:
+                direction = LEFT
+            elif event.type == pygame.USEREVENT+4 and direction != LEFT:
+                direction = RIGHT
+
 
         # check if the worm has hit itself or the edge
         if wormCoords[HEAD]['x'] == -1 or wormCoords[HEAD]['x'] == CELLWIDTH or wormCoords[HEAD]['y'] == -1 or wormCoords[HEAD]['y'] == CELLHEIGHT:
@@ -118,11 +188,19 @@ def checkForKeyPress():
         terminate()
 
     keyUpEvents = pygame.event.get(KEYUP)
-    if len(keyUpEvents) == 0:
+    # TODO: The USEREVENT stuff here doesn't work...
+    userEvents = pygame.event.get(USEREVENT)
+    if len(keyUpEvents) == 0 and len(userEvents) == 0:
         return None
     if keyUpEvents[0].key == K_ESCAPE:
         terminate()
-    return keyUpEvents[0].key
+
+    if len(keyUpEvents) != 0:
+        return keyUpEvents[0].key
+    elif len(userEvents) != 0:
+        return userEvents[0].code
+    else:
+        return None
 
 
 def showStartScreen():
@@ -158,6 +236,7 @@ def showStartScreen():
 def terminate():
     pygame.quit()
     sys.exit()
+
 
 
 def getRandomLocation():
