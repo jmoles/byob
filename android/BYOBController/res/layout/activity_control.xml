@@ -1,0 +1,113 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0099cc"
+    tools:context=".ControlActivity" >
+
+    <!--
+         The primary full-screen view. This can be replaced with whatever view
+         is needed to present your content, e.g. VideoView, SurfaceView,
+         TextureView, etc.
+    -->
+
+    <TextView
+        android:id="@+id/fullscreen_content"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:keepScreenOn="true"
+        android:text="@string/dummy_content"
+        android:textColor="#33b5e5"
+        android:textSize="50sp"
+        android:textStyle="bold" />
+
+    <!--
+         This FrameLayout insets its children based on system windows using
+         android:fitsSystemWindows.
+    -->
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center" >
+
+            <RelativeLayout
+                android:id="@+id/directionLayout"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" >
+
+                <Button
+                    android:id="@+id/buttonUp"
+                    android:layout_width="fill_parent"
+                    android:layout_height="75dp"
+                    android:onClick="onClick"
+                    android:text="@string/button_up" />
+
+                <View
+                    android:id="@+id/lrStrut"
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_below="@id/buttonUp"
+                    android:layout_centerHorizontal="true" />
+
+                <Button
+                    android:id="@+id/buttonLeft"
+                    android:layout_width="fill_parent"
+                    android:layout_height="75dp"
+                    android:layout_below="@id/buttonUp"
+                    android:layout_toLeftOf="@id/lrStrut"
+                    android:onClick="onClick"
+                    android:text="@string/button_left" />
+
+                <Button
+                    android:id="@+id/buttonRight"
+                    android:layout_width="fill_parent"
+                    android:layout_height="75dp"
+                    android:layout_below="@id/buttonUp"
+                    android:layout_toRightOf="@id/lrStrut"
+                    android:onClick="onClick"
+                    android:text="@string/button_right" />
+
+                <Button
+                    android:id="@+id/buttonDown"
+                    android:layout_width="fill_parent"
+                    android:layout_height="75dp"
+                    android:layout_below="@id/buttonLeft"
+                    android:onClick="onClick"
+                    android:text="@string/button_down" />
+            </RelativeLayout>
+
+            <RelativeLayout
+                android:id="@+id/buttonLayout"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/directionLayout" >
+                
+                <View
+                    android:id="@+id/abStrut"
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_centerHorizontal="true" />
+
+                <Button
+                    android:id="@+id/buttonA"
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_toLeftOf="@id/abStrut"
+                    android:onClick="onClick"
+                    android:text="@string/button_a" />
+
+                <Button
+                    android:id="@+id/buttonB"
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_toRightOf="@id/abStrut"
+                    android:onClick="onClick"
+                    android:text="@string/button_b" />
+            </RelativeLayout>
+
+        </RelativeLayout>
+
+
+</FrameLayout>
