@@ -48,7 +48,6 @@ DOWN  = "down"
 LEFT  = "left"
 RIGHT = "right"
 
-
 IMAGE_PATH = './/image//'
 SOUND_PATH = './/sound//'
 
@@ -130,7 +129,7 @@ class Player(game.sprite.Sprite):
     ###########################################################################
     def setPlayerScore(self, score):
         """Set Players Score"""
-        self.score = score
+        self.score += score
 
     ###########################################################################
     def getPlayerControlType(self):
@@ -233,6 +232,10 @@ class Maze(object):
             Code edited to match project needs.
         """
 
+        # reset maze data each level
+        if(self.maze != None):
+            del self.maze[:]
+
         mx = self.cell_height
         my = self.cell_width
 
@@ -278,10 +281,9 @@ class Maze(object):
             else: stack.pop()
 
         self.maze = maze
-       
-        self.prepMazeArea()
 
-        return self.maze
+        # perform some post processing
+        self.prepareMazeArea()
 
     ###########################################################################
     def getCurrentMaze(self):
@@ -289,11 +291,13 @@ class Maze(object):
         return self.maze[:]
 
     ###########################################################################
-    def prepMazeArea(self):
+    def prepareMazeArea(self):
         """Prepare Maze Area. Clear finish point and player start points."""
         
         width  = self.cell_width
         height = self.cell_height
+
+        self.wall_pool.empty()
 
         # clear a 4x4 block region in each corner for player to start in.
         for player in range(MAX_GAME_PLAYERS):
@@ -419,6 +423,9 @@ class Game(object):
         # current game level
         self.current_level = 0
 
+        # last player finished tracking
+        self.players_finished = 0 
+
         # create new maze object, and get maze attributes
         self.maze        = Maze(self.header_height)
         self.maze_width  = self.maze.getWindowWidth()
@@ -437,7 +444,7 @@ class Game(object):
         # player objects are stored in "player_pool" class
         self.player_color = (CYAN, RED, GREEN, YELLOW)
         self.player_pool  = []
-        self.generatePlayers()  # create new player objects
+        self.generatePlayers() # create new player objects
 
         # obstacle objects are stored in "obstacle_pool" class
         self.obstacle_pool = game.sprite.Group()
@@ -580,6 +587,8 @@ class Game(object):
 
         self.current_level = level
 
+        self.maze.generateNewMaze()
+
         for cycle in range(4):
 
             self.screen.fill(BLACK)
@@ -615,7 +624,7 @@ class Game(object):
                
                 if(event.type == QUIT): self.exitGame()
 
-                # FIXME - player 0 only
+                # FIXME - support only for player 0
                 if(event.type == KEYDOWN):
                     redraw_screen = True
 
@@ -671,9 +680,18 @@ class Game(object):
             player.setPlayerScore(self.award_points)
             self.updateScore()
             player.is_alive = False
+            self.players_finished +=1
+
+            if(self.players_finished == len(self.player_pool)):
+                self.players_finished = 0
+                self.resetScore()
+                self.game_in_progress = False
+
             self.finish_reached.play()
 
-            self.game_in_progress = False # temp code
+
+            # this is temp code... since we only have one player FIXME
+            self.game_in_progress = False
 
     ###########################################################################
     def showPlayerVictoryScreen(self):
@@ -723,6 +741,8 @@ class Game(object):
 
         flash = True
 
+        self.game_over_sound.play()
+
         for wait in range(10):
             self.screen.fill(BLACK)
 
@@ -732,10 +752,6 @@ class Game(object):
             else:
                 self.renderTitleMessage("GAME OVER", RED)
                 flash = True
-
-            if(self.keyPressEventDetected()):
-                game.event.get()
-                return
 
             game.display.update()
             self.fps_clock.tick(FPS)
@@ -822,7 +838,7 @@ class Game(object):
     def updateScore(self):
         """Updates possible points to collect by winner."""
 
-        # possible points reduced by 2 each time a player wins
+        # possible earn points reduced by 2 each time a player completes
         self.award_points /= 2
 
     ###########################################################################
