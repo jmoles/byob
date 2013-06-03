@@ -19,7 +19,7 @@ import sys
 
 # refresh rate: frame per second
 FPS = 15                
-MAX_GAME_LEVEL = 4
+MAX_GAME_LEVELS = 4
 MAX_GAME_PLAYERS = 4
 
 # define color encodings (RGB)
@@ -43,10 +43,10 @@ CYAN      = (0  , 255, 255)
 MAROON    = (128,   0,   0)
 
 # define direction
-UP      = "up"
-DOWN    = "down"
-LEFT    = "left"
-RIGHT   = "right"
+UP    = "up"
+DOWN  = "down"
+LEFT  = "left"
+RIGHT = "right"
 
 
 IMAGE_PATH = './/image//'
@@ -62,7 +62,9 @@ OTHER_PATH     = IMAGE_PATH + 'other//'
 # Controller Class
 ################################################################################
 class Controller(object):
-    
+   
+    # This is just a template for now
+
     def __init__(self, type):
         self.control_type = type
 
@@ -74,34 +76,51 @@ class Controller(object):
 ################################################################################
 # Player Class
 ################################################################################
-class Player(object):
+class Player(game.sprite.Sprite):
 
-    def __init__(self, name, color, character, control, screen):
-        self.name      = name         # player name
-        self.color     = color        # player color
-        self.character = character    # player character
+    def __init__(self, name, color, character, control):
+        game.sprite.Sprite.__init__(self)
 
-        self.score = 0                # player score 
-        self.x_pos = 0                # player x coordinate
-        self.y_pos = 0                # player y coordinate
-
-        # create new controller class of type control
-        self.controller = Controller(control)
-
-        self.screen = screen          # screen pointer
-
-        self.move_direction = None
+        self.name       = name                  # player name
+        self.color      = color                 # player color
+        self.image      = character             # player character
+        self.rect       = character.get_rect()  # player position data (x,y)      
+        self.score      = 0                     # player score 
+        self.controller = Controller(control)   # controller object ptr
+        self.direction  = None                  # move direction
+        self.speed      = 20                    # object move speed
+        self.is_alive   = True                  # is player alive
+        self.default_x  = 0                     # default player x coord
+        self.default_y  = 0                     # default player y coord
 
     ###########################################################################
-    def getPlayerPosition(self):
+    def update(self, direction):
+        """Player update class -- used by base class"""
+
+        self.direction = direction
+
+        # check for wall collisions
+        if(direction == UP):      self.rect.y -= self.speed
+        elif(direction == RIGHT): self.rect.x += self.speed
+        elif(direction == DOWN):  self.rect.y += self.speed
+        elif(direction == LEFT):  self.rect.x -= self.speed
+
+    ###########################################################################
+    def getPosition(self):
         """Get players x,y coordinates."""
-        return (self.x_pos, self.y_pos)
+        return (self.rect.x, self.rect.y)
 
     ###########################################################################
-    def setPlayerPosition(self, x, y):
+    def setPosition(self, x, y):
         """Set player x,y coordinates"""
-        self.x_pos = x
-        self.y_pos = y
+        self.rect.x = x; self.default_x = x
+        self.rect.y = y; self.default_y = y
+
+    ###########################################################################
+    def resetPosition(self):
+        """Reset player x,y coordinates"""
+        self.rect.x = self.default_x
+        self.rect.y = self.default_y
 
     ###########################################################################
     def getPlayerScore(self):
@@ -119,31 +138,58 @@ class Player(object):
         return self.controller.getType()
 
     ###########################################################################
-    def draw(self):
-        """Draw player on screen."""
-        self.screen.blit(self.character, (self.x_pos, self.y_pos))
+    def draw(self, screen):
+        """Render player on screen."""
+        screen.blit(self.image, self.rect)
 
 ###############################################################################
 # Obstacle Class
 ###############################################################################
-class Obstacle(object):
+class Obstacle(game.sprite.Sprite):
 
-    def __init__(self, type):
-        self.type      = type         # obstacle type
+    def __init__(self):
+        game.sprite.Sprite.__init__(self)
+
+        self.type  = random.rand_range()
+        self.image = game.image.load(OBSTACLE_PATH + 'object_type_%d.jpg' % self.type)
+        self.rect  = self.image.get_rect()
+
+        random_position = self.getRandomPosition()
+
+        self.rect.x = random_position[0]    # x-coordiante
+        self.rand.y = random_position[1]    # y-coordinate
+
+    ###########################################################################
+    def getRandomPosition(self):
+        """Get Obstacles Initial Position."""
+        x = 0
+        y = 0
         
-        self.x_pos = 0                # player x coordinate
-        self.y_pos = 0                # player y coordinate
+        # Add Code Here
+
+        return [x, y]
 
     ###########################################################################
     def getObstaclePosition(self):
-        """Get players x,y coordinates."""
-        return (self.x_pos, self.y_pos)
+        """Get Obstacle x,y coordinates."""
+        return (self.rect.x, self.rect.y)
+
+
+###############################################################################
+# Maze Wall Class
+###############################################################################
+class MazeWall(game.sprite.Sprite):
+
+    def __init__(self):
+        game.sprite.Sprite.__init__(self)
+        self.image = game.image.load(WALL_PATH + 'brick_tile.png') 
+        self.rect  = self.image.get_rect() 
 
     ###########################################################################
-    def setObstaclePosition(self, x, y):
-        """Set player x,y coordinates"""
-        self.x_pos = x
-        self.y_pos = y
+    def setPosition(self, x, y):
+        """Set the brick x,y coordinates"""
+        self.rect.x = x
+        self.rect.y = y
 
 
 ###############################################################################
@@ -151,11 +197,14 @@ class Obstacle(object):
 ###############################################################################
 class Maze(object):
 
-    def __init__(self):
+    def __init__(self, header_height):
 
-        self.maze_width  = 1280
-        self.maze_height = 960
-        self.cell_size   = 20
+        self.maze_width    = 800
+        self.maze_height   = 600
+        self.cell_size     = 20
+        self.header_height = header_height
+        self.maze          = None 
+        self.wall_pool     = game.sprite.Group()
 
         if(self.maze_width % self.cell_size != 0):
             raise ValueError ("Error: Maze width is not a multiple of cell size.")
@@ -166,13 +215,13 @@ class Maze(object):
         self.cell_width  = int(self.maze_width / self.cell_size)
         self.cell_height = int(self.maze_height / self.cell_size)
 
-        self.bg_color    = SILVER
-        self.wall_color  = BLACK
+        # load game images
+        self.maze_floor = game.image.load(FLOOR_PATH + 'grass_tile.png')
 
-        self.getNewMaze()
+        self.generateNewMaze()
 
     ###########################################################################
-    def getNewMaze(self):
+    def generateNewMaze(self):
         """
             Returns a randomly generated maze (map).
 
@@ -183,9 +232,6 @@ class Maze(object):
             Downloaded From: http://code.activestate.com/recipes/578356-random-maze-generator/
             Code edited to match project needs.
         """
-
-        #mx = self.cell_width    # maze width
-        #my = self.cell_height   # maze height
 
         mx = self.cell_height
         my = self.cell_width
@@ -285,19 +331,35 @@ class Maze(object):
             for y in range(4):
                 self.maze[x + x_offset][y + y_offset] = 1
 
-        # clear outside maze paremeter
+        # clear outside paremeter and generate wall group
         for x in range(width):
             for y in range(height):
+
+                # clear outside maze paremeter
                 if((x == 0) or (x == width-1)):
                     self.maze[x][y] = 1
                 elif((y == 0) or (y == height-1)):
                     self.maze[x][y] = 1
 
+                # create new brick object and add to group
+                if(self.maze[x][y] == 0):
+                    new_brick = MazeWall()
+                    x_pos = x * self.cell_size
+                    y_pos = y * self.cell_size
+                    new_brick.setPosition(x_pos, y_pos + self.header_height)
+                    self.wall_pool.add(new_brick)
+
     ###########################################################################
-    def getRandomPosition(self):
-        """Get a random maze position"""
-        return ( random.randinit(0, CELL_WIDTH-1), 
-                 random.randinit(0, CELL_HEIGHT-1) )
+    def draw(self, screen):
+        """Draw the maze floor and walls."""
+
+        # first draw the floor
+        for x in range(0, self.maze_width, self.cell_size):
+            for y in range(0, self.maze_height, self.cell_size):
+                screen.blit(self.maze_floor, (x, y + self.header_height))
+        
+        # next draw the walls
+        self.wall_pool.draw(screen)
 
     ###########################################################################
     def getWindowHeight(self):
@@ -314,10 +376,30 @@ class Maze(object):
         """ Returns maze cell size"""
         return self.cell_size
 
+
+###############################################################################
+# Maze Finish Point
+###############################################################################
+class FinishPoint(game.sprite.Sprite):
+
+    def __init__(self, width, height, size, offset):
+        game.sprite.Sprite.__init__(self)
+        self.image = game.image.load(OBSTACLE_PATH + 'finish_point.png')  
+        self.rect  = self.image.get_rect() 
+
+        self.rect.x = (width / 2) - size
+        self.rect.y = (height + offset) / 2
+
     ###########################################################################
-    def getWallColor(self):
-        """ Returns maze wall color"""
-        return self.wall_color
+    def setPosition(self, x, y):
+        """Set the finish point x,y coordinates"""
+        self.rect.x = x
+        self.rect.y = y
+
+    def draw(self, screen):
+        """Draw the finish point on the screen."""
+        screen.blit(self.image, self.rect)
+
 
 ###############################################################################
 # Game Class
@@ -331,8 +413,11 @@ class Game(object):
         # header where the score is displayed (FIXME)
         self.header_height = 40
 
+        # score awarded to winning player
+        self.award_points = 100
+
         # create new maze object, and get maze attributes
-        self.maze        = Maze()
+        self.maze        = Maze(self.header_height)
         self.maze_width  = self.maze.getWindowWidth()
         self.maze_height = self.maze.getWindowHeight()
         self.cell_size   = self.maze.getCellSize()
@@ -346,10 +431,14 @@ class Game(object):
         self.screen = game.display.set_mode( (width, height) )
         self.screen.convert() 
 
-        # player objects are stored in "player_pool"
+        # player objects are stored in "player_pool" class
         self.player_color = (CYAN, RED, GREEN, YELLOW)
-        self.player_pool = []
+        self.player_pool  = []
         self.generatePlayers()  # create new player objects
+
+        # obstacle objects are stored in "obstacle_pool" class
+        self.obstacle_pool = game.sprite.Group()
+        self.generateObstacles() # create new obstacles
 
         # load game sounds
         self.game_start_sound    = game.mixer.Sound(SOUND_PATH + 'game_start.wav') 
@@ -357,6 +446,15 @@ class Game(object):
         self.level_victory_sound = game.mixer.Sound(SOUND_PATH + 'level_victory.wav') 
         self.game_over_sound     = game.mixer.Sound(SOUND_PATH + 'game_over.wav') 
         self.finish_reached      = game.mixer.Sound(SOUND_PATH + 'finish_reached.wav') 
+
+        # create finish point object
+        width  = self.maze_width
+        height = self.maze_height
+        size   = self.cell_size
+        offset = self.header_height
+        finish = FinishPoint(width, height, size, offset)
+        self.finish_point = game.sprite.Group()
+        self.finish_point.add(finish)
 
         game.display.set_caption("Maze Madeness")
         
@@ -375,8 +473,7 @@ class Game(object):
             color      = self.player_color[player]
             character  = game.image.load(CHARACTER_PATH + 'player_%d.jpg' % player)
             control    = None
-            screen     = self.screen
-            new_player = Player(name, color, character, control, screen)
+            new_player = Player(name, color, character, control)
 
             # assign player 0 to Top Left of the maze
             if(player == 0):
@@ -398,8 +495,13 @@ class Game(object):
                 x = cell_size * 2
                 y = (height + h_offset) - (cell_size * 3)
                 
-            new_player.setPlayerPosition(x,y)
+            new_player.setPosition(x,y)
             self.player_pool.append(new_player)
+
+    ###########################################################################
+    def generateObstacles(self):
+        """Generate Obstacles."""
+        pass
 
     ###########################################################################
     def startGame(self):
@@ -408,7 +510,7 @@ class Game(object):
         self.showGameStartScreen()
         self.showPlayerSelectScreen()
 
-        for level in range(MAX_GAME_LEVEL):
+        for level in range(MAX_GAME_LEVELS):
             self.showNewLevelScreen(level)
             self.startLevel()
             self.showPlayerVictoryScreen()
@@ -424,11 +526,11 @@ class Game(object):
         flash = True
 
         self.game_start_sound.play()
-        splash = game.image.load(OTHER_PATH + 'monkey.jpg')
+        #splash = game.image.load(OTHER_PATH + 'monkey.jpg') <-- load custom image here
         
         for wait in range(10):
             self.screen.fill(BLACK)
-            self.screen.blit(splash, (450, 350))
+            #self.screen.blit(splash, (450, 350))
 
             if(flash):
                 self.renderTitleMessage("- * - * MAZE MADNESS * - * -", WHITE, BLACK)
@@ -474,9 +576,8 @@ class Game(object):
         message = "LOADING LEVEL %d" % level
 
         for cycle in range(4):
-            
-            self.screen.fill(BLACK)
 
+            self.screen.fill(BLACK)
             self.renderTitleMessage(message+progress, WHITE, BLACK, 25)
             
             if(count < 3): 
@@ -488,14 +589,18 @@ class Game(object):
 
             game.display.update()
             self.fps_clock.tick(FPS)
-        
+       
+        # reset player state for next level
+        for player in self.player_pool:
+            player.is_alive = True
+            player.resetPosition()
+
             game.time.wait(500)
 
     ###########################################################################
     def startLevel(self):
         """Show Player Victory Screen."""
 
-        step = self.cell_size
         redraw_screen = True
         self.game_in_progress = True
 
@@ -503,29 +608,22 @@ class Game(object):
 
             for event in game.event.get():
                
-                if(event.type == QUIT):
-                    self.exitGame()
+                if(event.type == QUIT): self.exitGame()
 
+                # FIXME - player 0 only
                 if(event.type == KEYDOWN):
-                    
                     redraw_screen = True
 
-                    if(event.key == K_LEFT):
-                        self.player_pool[0].x_pos -= step
+                    if(event.key == K_LEFT):    direction = LEFT
+                    elif(event.key == K_RIGHT): direction = RIGHT
+                    elif(event.key == K_UP):    direction = UP
+                    elif(event.key == K_DOWN):  direction = DOWN
+                    
+                    self.updatePlayerPosition(self.player_pool[0], direction)
 
-                    elif(event.key == K_RIGHT):
-                        self.player_pool[0].x_pos += step
-
-                    elif(event.key == K_UP):
-                        self.player_pool[0].y_pos -= step
-
-                    elif(event.key == K_DOWN):
-                        self.player_pool[0].y_pos += step
-           
-                    #print "Debug: player[0] X=%d, Y=%d" % (self.player_pool[0].x_pos, self.player_pool[0].y_pos)
 
             if(redraw_screen):
-                self.renderMaze(False)
+                self.renderMaze()
                 self.renderExitPoint()
                 self.renderPlayers()
                 self.renderObstacles()
@@ -536,9 +634,44 @@ class Game(object):
 
                 redraw_screen = False
         
-        #while(True): pass  #debug only
 
-        game.time.wait(5000)
+        #game.time.wait(5000)
+
+    ###########################################################################
+    def updatePlayerPosition(self, player, direction):
+        """Update player position if no collision is dectected."""
+
+        recover_direction = None
+
+        if(direction == LEFT):    recover_direction = RIGHT
+        elif(direction == RIGHT): recover_direction = LEFT
+        elif(direction == UP):    recover_direction = DOWN
+        elif(direction == DOWN):  recover_direction = UP
+
+        # update the player postion
+        player.update(direction)
+        
+        # check if that results in a collision with wall
+        if(game.sprite.spritecollideany(player, self.maze.wall_pool) != None):
+            player.update(recover_direction) # if collision, restore last position.
+
+        # check left and right screen limits
+        elif(player.rect.x < 0 or (player.rect.x + self.cell_size) > self.maze_width):
+            player.update(recover_direction)
+
+        # check top and bottom screen limits
+        elif(player.rect.y < self.header_height or \
+            (player.rect.y + self.cell_size) > (self.maze_height + self.header_height)):
+            player.update(recover_direction)
+
+        # check if finish point is reached
+        elif(game.sprite.spritecollideany(player, self.finish_point) != None):
+            player.setPlayerScore(self.award_points)
+            self.updateScore()
+            player.is_alive = False
+            self.finish_reached.play()
+
+            self.game_in_progress = False # temp code
 
     ###########################################################################
     def showPlayerVictoryScreen(self):
@@ -579,45 +712,27 @@ class Game(object):
     def renderMaze(self, generate_new_maze = True):
         """Render Game Floor and Maze Walls."""
    
-        if(generate_new_maze):
-            maze = self.maze.getNewMaze()
-        else:
-            maze = self.maze.getCurrentMaze()
-
-        floor = game.image.load(FLOOR_PATH + 'grass_tile.png')
-        brick = game.image.load(WALL_PATH + 'brick_tile.png')
-
-        # Draw the floor and walls on the screen 
-        for x in range(0, self.maze_width, self.cell_size):
-            for y in range(0, self.maze_height, self.cell_size):
-                self.screen.blit(floor, (x, y + self.header_height))
-                x_index = x / self.cell_size
-                y_index = y / self.cell_size
-                if(maze[x_index][y_index] == 0):
-                    self.screen.blit(brick, (x, y + self.header_height))
+        self.maze.draw(self.screen)
 
     ###########################################################################
     def renderPlayers(self):
         """Render Game Players."""
-        
+       
         for player in self.player_pool:
-            player.draw()
+            if(player.is_alive):
+                player.draw(self.screen)
 
     ###########################################################################
     def renderExitPoint(self):
         """Render Game Exit Point."""
 
-        width = self.cell_size * 2
-        x = (self.maze_width / 2) - (width / 2)
-        y = (self.maze_height + self.header_height) / 2
-
-        player_x = game.image.load(OBSTACLE_PATH + 'finish_point.png')
-        self.screen.blit(player_x, (x, y))
+        self.finish_point.draw(self.screen)
 
     ###########################################################################
     def renderObstacles(self):
         """Render Game Obstacles."""
-        pass
+
+        self.obstacle_pool.draw(self.screen)
 
     ###########################################################################
     def renderScore(self):
@@ -630,16 +745,15 @@ class Game(object):
         header = game.Rect(0, 0, self.maze_width, height)
         game.draw.rect(self.screen, BLACK, header)
 
-        for player in range(MAX_GAME_PLAYERS):
-            
+        #for player in range(MAX_GAME_PLAYERS):
+        for player in self.player_pool:     
+
             game.draw.line(self.screen, WHITE, (offset, 0), (offset, height))
 
-            score = self.player_pool[player].getPlayerScore()
-            score_header = "Player %d: %d" % (player, score)
-            player_color = self.player_color[player]
+            player_info = player.name + ':  %d' % player.score
 
             font = game.font.Font('freesansbold.ttf', 18)
-            surf = font.render(score_header, True, player_color, BLACK)
+            surf = font.render(player_info, True, player.color, BLACK)
             rect = surf.get_rect()
             rect.topleft = (offset + 20, 10)
             self.screen.blit(surf, rect)
@@ -649,7 +763,7 @@ class Game(object):
         game.draw.line(self.screen, WHITE, (0, height), (self.maze_width, height))
 
     ###########################################################################
-    def renderUserDirections(self, message="", f_color=WHITE, b_color=BLACK, size=14):
+    def renderUserDirections(self, message="", f_color=WHITE, b_color=BLACK, size=12):
         """Render User Directions."""
         
         font = game.font.Font('freesansbold.ttf', size)
@@ -660,15 +774,28 @@ class Game(object):
         self.screen.blit(surf, rect)
 
     ###########################################################################
-    def renderTitleMessage(self, message="", f_color=WHITE, b_color=BLACK, size=60):
+    def renderTitleMessage(self, message="", f_color=WHITE, b_color=BLACK, size=40):
         """Render Title Message."""
 
         font = game.font.Font('freesansbold.ttf', size)
         surf = font.render(message, True, f_color, b_color)
         rect = surf.get_rect()
         rect.centerx = self.screen.get_rect().centerx
-        rect.centery = self.screen.get_rect().centery - 250
+        rect.centery = self.screen.get_rect().centery
         self.screen.blit(surf, rect)
+
+    ###########################################################################
+    def updateScore(self):
+        """Updates possible points to collect by winner."""
+
+        # possible points reduced by 2 each time a player wins
+        self.award_points /= 2
+
+    ###########################################################################
+    def resetScore(self):
+        """Resets game score back to initial value."""
+
+        self.award_points = 100
 
     ###########################################################################
     def exitGame(self):
