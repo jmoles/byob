@@ -328,8 +328,8 @@ class Maze(object):
                     self.maze[x + x_offset][y + y_offset] = 1
 
         # clear a 4x4 finish point region
-        x_offset = (width / 2) - 2
-        y_offset = (height / 2) - 2
+        x_offset = int(width / 2) - 2
+        y_offset = int(height / 2) - 2
 
         for x in range(4):
             for y in range(4):
@@ -391,8 +391,8 @@ class FinishPoint(game.sprite.Sprite):
         self.image = game.image.load(OBSTACLE_PATH + 'finish_point.png')  
         self.rect  = self.image.get_rect() 
 
-        self.rect.x = (width / 2) - size
-        self.rect.y = (height + offset) / 2
+        self.rect.x = int(width / 2) - size
+        self.rect.y = int((height + offset) / 2)
 
     ###########################################################################
     def setPosition(self, x, y):
@@ -566,8 +566,8 @@ class Game(object):
 
         self.screen.fill(BLACK)
 
-        x = self.maze_width / 2
-        y = self.maze_height / 2
+        x = int(self.maze_width / 2)
+        y = int(self.maze_height / 2)
 
         game.draw.line(self.screen, WHITE, (x,0), (x, self.maze_height+self.header_height))
         game.draw.line(self.screen, WHITE, (0,y), (self.maze_width, y))
@@ -789,7 +789,7 @@ class Game(object):
         """Render Player Score."""
         
         offset = 0
-        width  = self.maze_width / MAX_GAME_PLAYERS
+        width  = int(self.maze_width / MAX_GAME_PLAYERS)
         height = self.header_height
 
         header = game.Rect(0, 0, self.maze_width, height)
