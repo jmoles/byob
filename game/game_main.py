@@ -416,6 +416,9 @@ class Game(object):
         # score awarded to winning player
         self.award_points = 100
 
+        # current game level
+        self.current_level = 0
+
         # create new maze object, and get maze attributes
         self.maze        = Maze(self.header_height)
         self.maze_width  = self.maze.getWindowWidth()
@@ -575,6 +578,8 @@ class Game(object):
         progress = ""
         message = "LOADING LEVEL %d" % level
 
+        self.current_level = level
+
         for cycle in range(4):
 
             self.screen.fill(BLACK)
@@ -634,9 +639,6 @@ class Game(object):
 
                 redraw_screen = False
         
-
-        #game.time.wait(5000)
-
     ###########################################################################
     def updatePlayerPosition(self, player, direction):
         """Update player position if no collision is dectected."""
@@ -676,7 +678,39 @@ class Game(object):
     ###########################################################################
     def showPlayerVictoryScreen(self):
         """Show Player Victory Screen."""
-        pass
+        
+        flash      = True
+        winner     = 0
+        last_score = 0
+
+        # play victory sound
+        self.level_victory_sound.play()
+
+        for player in self.player_pool:
+            if(player.score > last_score):
+                winner = player
+       
+        message = "%s is Winner!!!" % winner.name
+
+        # blank winner name
+        for wait in range(10):
+
+            # change background to winner color
+            self.screen.fill(winner.color)
+
+            if(flash):
+                self.renderTitleMessage(message, WHITE, winner.color)
+                flash = False
+            else:
+                self.renderTitleMessage(message, BLACK, winner.color)
+                flash = True
+
+            game.display.update()
+            self.fps_clock.tick(FPS)
+
+            game.time.wait(250)
+
+        game.time.wait(2000)
 
     ###########################################################################
     def showPlayerStatScreen(self):
@@ -795,7 +829,7 @@ class Game(object):
     def resetScore(self):
         """Resets game score back to initial value."""
 
-        self.award_points = 100
+        self.award_points = 100 * (1 + self.current_level)
 
     ###########################################################################
     def exitGame(self):
