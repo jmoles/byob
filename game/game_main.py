@@ -19,8 +19,9 @@ import sys
 
 # refresh rate: frame per second
 FPS = 15                
-MAX_GAME_LEVELS = 4
+MAX_GAME_LEVELS  = 4
 MAX_GAME_PLAYERS = 4
+MAX_TYPE_COUNT   = 4
 
 # define color encodings (RGB)
 #             R    G    B
@@ -98,7 +99,7 @@ class Player(game.sprite.Sprite):
 
         self.direction = direction
 
-        # check for wall collisions
+        # move player in "direction" at player speed
         if(direction == UP):      self.rect.y -= self.speed
         elif(direction == RIGHT): self.rect.x += self.speed
         elif(direction == DOWN):  self.rect.y += self.speed
@@ -141,6 +142,7 @@ class Player(game.sprite.Sprite):
         """Render player on screen."""
         screen.blit(self.image, self.rect)
 
+
 ###############################################################################
 # Obstacle Class
 ###############################################################################
@@ -149,27 +151,18 @@ class Obstacle(game.sprite.Sprite):
     def __init__(self):
         game.sprite.Sprite.__init__(self)
 
-        self.type  = random.rand_range()
+        self.type  = random.randrange(0, MAX_TYPE_COUNT)
         self.image = game.image.load(OBSTACLE_PATH + 'object_type_%d.jpg' % self.type)
         self.rect  = self.image.get_rect()
 
-        random_position = self.getRandomPosition()
-
-        self.rect.x = random_position[0]    # x-coordiante
-        self.rand.y = random_position[1]    # y-coordinate
+    ###########################################################################
+    def setPosition(self, x, y):
+        """Set obstacle x,y coordinates"""
+        self.rect.x = x
+        self.rect.y = y
 
     ###########################################################################
-    def getRandomPosition(self):
-        """Get Obstacles Initial Position."""
-        x = 0
-        y = 0
-        
-        # Add Code Here
-
-        return [x, y]
-
-    ###########################################################################
-    def getObstaclePosition(self):
+    def getPosition(self):
         """Get Obstacle x,y coordinates."""
         return (self.rect.x, self.rect.y)
 
@@ -214,7 +207,7 @@ class Maze(object):
         self.cell_width  = int(self.maze_width / self.cell_size)
         self.cell_height = int(self.maze_height / self.cell_size)
 
-        # load game images
+        # load maze floor image
         self.maze_floor = game.image.load(FLOOR_PATH + 'grass_tile.png')
 
         self.generateNewMaze()
@@ -400,6 +393,7 @@ class FinishPoint(game.sprite.Sprite):
         self.rect.x = x
         self.rect.y = y
 
+    ###########################################################################
     def draw(self, screen):
         """Draw the finish point on the screen."""
         screen.blit(self.image, self.rect)
@@ -447,8 +441,9 @@ class Game(object):
         self.generatePlayers() # create new player objects
 
         # obstacle objects are stored in "obstacle_pool" class
+        self.obstacle_count = (4, 8, 12, 16)
         self.obstacle_pool = game.sprite.Group()
-        self.generateObstacles() # create new obstacles
+        #self.generateObstacles() # create new obstacles
 
         # load game sounds
         self.game_start_sound    = game.mixer.Sound(SOUND_PATH + 'game_start.wav') 
@@ -511,7 +506,28 @@ class Game(object):
     ###########################################################################
     def generateObstacles(self):
         """Generate Obstacles."""
-        pass
+
+        obstacle_count = self.obstacle_count[self.current_level]
+        self.obstacle_pool.empty()
+
+        for obstacle in range(obstacle_count):
+
+            new_obstacle = Obstacle()
+
+            # search for a free spot to place obstacle (allow 100 placement retries)
+            while(100):
+                maze_width  = self.maze_width - self.cell_size
+                maze_height = (self.header_height + self.maze_height) - self.cell_size 
+
+                x = random.randrange(0, maze_width, self.cell_size)
+                y = random.randrange(self.header_height, maze_height, self.cell_size)
+                
+                new_obstacle.setPosition(x, y)
+                
+                if(game.sprite.spritecollideany(new_obstacle, self.maze.wall_pool) == None):
+                    break
+
+            self.obstacle_pool.add(new_obstacle)
 
     ###########################################################################
     def startGame(self):
@@ -588,6 +604,8 @@ class Game(object):
         self.current_level = level
 
         self.maze.generateNewMaze()
+
+        self.generateObstacles()
 
         for cycle in range(4):
 
@@ -689,9 +707,26 @@ class Game(object):
 
             self.finish_reached.play()
 
-
             # this is temp code... since we only have one player FIXME
             self.game_in_progress = False
+
+        # check if obstacle is hit
+        obstacle_hit = game.sprite.spritecollide(player, self.obstacle_pool, True)
+        
+        # perform obstacle action
+        if(len(obstacle_hit) > 0):
+            if(obstacle_hit[0] == 0):
+                pass
+                # type 0 obstacle hit
+            elif(obstacle_hit[0] == 1):
+                pass
+                # type 1 obstacle hit
+            elif(obstacle_hit[0] == 2):
+                pass
+                # type 2 obstacle hit
+            elif(obstacle_hit[0] == 3):
+                pass
+                # type 3 obstacle hit
 
     ###########################################################################
     def showPlayerVictoryScreen(self):
@@ -710,7 +745,7 @@ class Game(object):
        
         message = "%s is Winner!!!" % winner.name
 
-        # blank winner name
+        # blink winner name
         for wait in range(10):
 
             # change background to winner color
@@ -845,6 +880,7 @@ class Game(object):
     def resetScore(self):
         """Resets game score back to initial value."""
 
+        # possible points per level = level * 100
         self.award_points = 100 * (1 + self.current_level)
 
     ###########################################################################
