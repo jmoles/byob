@@ -78,10 +78,11 @@ class Controller(object):
 ################################################################################
 class Player(game.sprite.Sprite):
 
-    def __init__(self, name, color, character, control):
+    def __init__(self, name, id, color, character, control):
         game.sprite.Sprite.__init__(self)
 
         self.name       = name                  # player name
+        self.id         = id                    # player id number
         self.color      = color                 # player color
         self.image      = character             # player character
         self.rect       = character.get_rect()  # player position data (x,y)      
@@ -475,10 +476,11 @@ class Game(object):
         # create new players, and add them to the player_pool
         for player in range(MAX_GAME_PLAYERS):
             name       = "Player %d" % player
+            id         = player
             color      = self.player_color[player]
             character  = game.image.load(CHARACTER_PATH + 'player_%d.jpg' % player).convert()
             control    = None
-            new_player = Player(name, color, character, control)
+            new_player = Player(name, id, color, character, control)
 
             # assign player 0 to Top Left of the maze
             if(player == 0):
@@ -555,7 +557,7 @@ class Game(object):
         splash = game.image.load(OTHER_PATH + 'splash.png')
        
         x = self.screen.get_rect().centerx - (splash.get_width() / 2)
-        y = self.screen.get_rect().centery - (splash.get_height() / 2)
+        y = self.screen.get_rect().centery - (splash.get_height() / 2) + 15
 
         offset  = (splash.get_height() / 2)
         message = "MAZE MADNESS" 
@@ -565,13 +567,13 @@ class Game(object):
             self.screen.blit(splash, (x,y))
 
             if(flash):
-                self.renderTitleMessage(message, WHITE, BLACK, 40, -offset)
+                self.renderTitleMessage(message, WHITE, BLACK, 55, -offset)
                 flash = False
             else:
-                self.renderTitleMessage(message, LIME, BLACK, 40, -offset)
+                self.renderTitleMessage(message, LIME, BLACK, 55, -offset)
                 flash = True
 
-            self.renderUserDirections("Portland State University", GREEN, BLACK, 14, -10)
+            self.renderUserDirections("Portland State University", GREEN, BLACK, 12, -10)
 
             if(self.keyPressEventDetected()):
                 game.event.get()
@@ -713,26 +715,36 @@ class Game(object):
 
             self.finish_reached.play()
 
-            # this is temp code... since we only have one player FIXME
+            # FIXME - next line is temp code... since we only have one player
             self.game_in_progress = False
+
+        # perform collision detection between players
+        elif(len(player.rect.collidelistall(self.player_pool)) > 1):
+            player.update(recover_direction)
+
 
         # check if obstacle is hit
         obstacle_hit = game.sprite.spritecollide(player, self.obstacle_pool, True)
-        
-        # perform obstacle action
+       
+        # perform obstacle related action
         if(len(obstacle_hit) > 0):
-            if(obstacle_hit[0] == 0):
+
+            # type 0 obstacle hit
+            if(obstacle_hit[0].type == 0):
                 pass
-                # type 0 obstacle hit
-            elif(obstacle_hit[0] == 1):
+
+            # type 1 obstacle hit
+            elif(obstacle_hit[0].type == 1):
                 pass
-                # type 1 obstacle hit
-            elif(obstacle_hit[0] == 2):
+
+            # type 2 obstacle hit
+            elif(obstacle_hit[0].type == 2):
                 pass
-                # type 2 obstacle hit
-            elif(obstacle_hit[0] == 3):
+
+            # type 3 obstacle hit
+            elif(obstacle_hit[0].type == 3):
                 pass
-                # type 3 obstacle hit
+
 
     ###########################################################################
     def showPlayerVictoryScreen(self):
