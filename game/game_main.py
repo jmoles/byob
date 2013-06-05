@@ -152,7 +152,7 @@ class Obstacle(game.sprite.Sprite):
         game.sprite.Sprite.__init__(self)
 
         self.type  = random.randrange(0, MAX_TYPE_COUNT)
-        self.image = game.image.load(OBSTACLE_PATH + 'object_type_%d.jpg' % self.type)
+        self.image = game.image.load(OBSTACLE_PATH + 'obstacle.jpg').convert()
         self.rect  = self.image.get_rect()
 
     ###########################################################################
@@ -174,7 +174,7 @@ class MazeWall(game.sprite.Sprite):
 
     def __init__(self):
         game.sprite.Sprite.__init__(self)
-        self.image = game.image.load(WALL_PATH + 'brick_tile.png') 
+        self.image = game.image.load(WALL_PATH + 'brick_tile.png')
         self.rect  = self.image.get_rect() 
 
     ###########################################################################
@@ -433,7 +433,7 @@ class Game(object):
         width  = self.maze_width
         height = self.maze_height + self.header_height
         self.screen = game.display.set_mode( (width, height) )
-        self.screen.convert() 
+        #self.screen.convert() 
 
         # player objects are stored in "player_pool" class
         self.player_color = (CYAN, RED, GREEN, YELLOW)
@@ -441,7 +441,7 @@ class Game(object):
         self.generatePlayers() # create new player objects
 
         # obstacle objects are stored in "obstacle_pool" class
-        self.obstacle_count = (4, 8, 12, 16)
+        self.obstacle_count = (5, 10, 15, 20)
         self.obstacle_pool = game.sprite.Group()
         #self.generateObstacles() # create new obstacles
 
@@ -476,7 +476,7 @@ class Game(object):
         for player in range(MAX_GAME_PLAYERS):
             name       = "Player %d" % player
             color      = self.player_color[player]
-            character  = game.image.load(CHARACTER_PATH + 'player_%d.jpg' % player)
+            character  = game.image.load(CHARACTER_PATH + 'player_%d.jpg' % player).convert()
             control    = None
             new_player = Player(name, color, character, control)
 
@@ -552,20 +552,26 @@ class Game(object):
         flash = True
 
         self.game_start_sound.play()
-        #splash = game.image.load(OTHER_PATH + 'monkey.jpg') <-- load custom image here
-        
+        splash = game.image.load(OTHER_PATH + 'splash.png')
+       
+        x = self.screen.get_rect().centerx - (splash.get_width() / 2)
+        y = self.screen.get_rect().centery - (splash.get_height() / 2)
+
+        offset  = (splash.get_height() / 2)
+        message = "MAZE MADNESS" 
+
         for wait in range(10):
             self.screen.fill(BLACK)
-            #self.screen.blit(splash, (450, 350))
+            self.screen.blit(splash, (x,y))
 
             if(flash):
-                self.renderTitleMessage("- * - * MAZE MADNESS * - * -", WHITE, BLACK)
+                self.renderTitleMessage(message, WHITE, BLACK, 40, -offset)
                 flash = False
             else:
-                self.renderTitleMessage("- * - * MAZE MADNESS * - * -", LIME, BLACK)
+                self.renderTitleMessage(message, LIME, BLACK, 40, -offset)
                 flash = True
 
-            self.renderUserDirections("Portland State University", GREEN, BLACK, 14)
+            self.renderUserDirections("Portland State University", GREEN, BLACK, 14, -10)
 
             if(self.keyPressEventDetected()):
                 game.event.get()
@@ -848,25 +854,25 @@ class Game(object):
         game.draw.line(self.screen, WHITE, (0, height), (self.maze_width, height))
 
     ###########################################################################
-    def renderUserDirections(self, message="", f_color=WHITE, b_color=BLACK, size=12):
+    def renderUserDirections(self, message="", f_color=WHITE, b_color=BLACK, size=12, offset=0):
         """Render User Directions."""
         
         font = game.font.Font('freesansbold.ttf', size)
         surf = font.render(message, True, f_color, b_color)
         rect = surf.get_rect()
         rect.centerx = self.screen.get_rect().centerx
-        rect.y = self.maze_height - 15
+        rect.y = self.maze_height + offset
         self.screen.blit(surf, rect)
 
     ###########################################################################
-    def renderTitleMessage(self, message="", f_color=WHITE, b_color=BLACK, size=40):
+    def renderTitleMessage(self, message="", f_color=WHITE, b_color=BLACK, size=40, offset=0):
         """Render Title Message."""
 
         font = game.font.Font('freesansbold.ttf', size)
         surf = font.render(message, True, f_color, b_color)
         rect = surf.get_rect()
         rect.centerx = self.screen.get_rect().centerx
-        rect.centery = self.screen.get_rect().centery
+        rect.centery = self.screen.get_rect().centery + offset
         self.screen.blit(surf, rect)
 
     ###########################################################################
