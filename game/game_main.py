@@ -9,7 +9,12 @@
 #                  Tejas Tapsale
 #
 # Date: May 24th 2013 (Spring Term)
-# Description:
+#
+# Description: This is a multi-level, multi-player maze game with obstacles.
+#              Players compete to finish the maze while collecting the most 
+#              points (good obstacles) while avoiding bad obstacles which
+#              impact maze completion. This game utilizes the python "pygame"
+#              library.
 ################################################################################
 
 import pygame as game
@@ -17,14 +22,12 @@ from pygame.locals import *
 import random
 import sys
 
-# refresh rate: frame per second
-FPS = 15                
-MAX_GAME_LEVELS  = 4
-MAX_GAME_PLAYERS = 4
-MAX_TYPE_COUNT   = 4
+FPS = 15                # refresh rate
+MAX_GAME_LEVELS  = 4    # max game levels
+MAX_GAME_PLAYERS = 4    # max game players
+MAX_TYPE_COUNT   = 6    # max obstacle types
 
-# define color encodings (RGB)
-#             R    G    B
+# game colors (R : G : B)
 WHITE     = (255, 255, 255) 
 BLACK     = (  0,   0,   0)
 RED       = (255,   0,   0)
@@ -107,15 +110,21 @@ class Player(game.sprite.Sprite):
         elif(direction == LEFT):  self.rect.x -= self.speed
 
     ###########################################################################
+    def setStartPosition(self, x, y):
+        """Set player initial starting x,y coordinates"""
+        self.rect.x = x; self.default_x = x
+        self.rect.y = y; self.default_y = y
+
+    ###########################################################################
     def getPosition(self):
-        """Get players x,y coordinates."""
+        """Get player x,y coordinates."""
         return (self.rect.x, self.rect.y)
 
     ###########################################################################
     def setPosition(self, x, y):
         """Set player x,y coordinates"""
-        self.rect.x = x; self.default_x = x
-        self.rect.y = y; self.default_y = y
+        self.rect.x = x
+        self.rect.y = y
 
     ###########################################################################
     def resetPosition(self):
@@ -129,9 +138,33 @@ class Player(game.sprite.Sprite):
         return self.score
 
     ###########################################################################
-    def setPlayerScore(self, score):
-        """Set Players Score"""
+    def addPoints(self, score):
+        """Give Player Points"""
         self.score += score
+
+    ###########################################################################
+    def goFast(self):
+        """Increase players speed"""
+        #self.speed = 40
+        pass
+
+    ###########################################################################
+    def goSlow(self):
+        """Decrease players speed"""
+        #self.speed = 10
+        pass
+
+    ###########################################################################
+    def goNormal(self):
+        """Restores players default speed"""
+        #self.score = 20
+        pass
+
+    ###########################################################################
+    def freeze(self):
+        """Stop player from moving"""
+        #self.score = 0
+        pass
 
     ###########################################################################
     def getPlayerControlType(self):
@@ -502,7 +535,7 @@ class Game(object):
                 x = cell_size * 2
                 y = (height + h_offset) - (cell_size * 3)
                 
-            new_player.setPosition(x,y)
+            new_player.setStartPosition(x,y)
             self.player_pool.append(new_player)
 
     ###########################################################################
@@ -703,7 +736,7 @@ class Game(object):
 
         # check if finish point is reached
         elif(game.sprite.spritecollideany(player, self.finish_point) != None):
-            player.setPlayerScore(self.award_points)
+            player.addPoints(self.award_points)
             self.updateScore()
             player.is_alive = False
             self.players_finished +=1
@@ -723,28 +756,59 @@ class Game(object):
             player.update(recover_direction)
 
 
-        # check if obstacle is hit
-        obstacle_hit = game.sprite.spritecollide(player, self.obstacle_pool, True)
+        # check if obstacle is hit and perform related action
+        #obstacle_hit_list = game.sprite.spritecollide(player, self.obstacle_pool, True)
        
         # perform obstacle related action
-        if(len(obstacle_hit) > 0):
+        #if(len(obstacle_hit) > 0):
+        for hit_obstacle in game.sprite.spritecollide(player, self.obstacle_pool, True):
+
+            print "Debug: Obstacle Hit Detected: Type = %d" % hit_obstacle.type
 
             # type 0 obstacle hit
-            if(obstacle_hit[0].type == 0):
-                pass
+            if(hit_obstacle.type == 0):
+                # freeze all other players for N seconds.
+                for freeze_player in self.player_pool:
+                    if(player != freeze_player):
+                        freeze_player.freeze()
 
             # type 1 obstacle hit
-            elif(obstacle_hit[0].type == 1):
-                pass
+            elif(hit_obstacle.type == 1):
+                # slow down other players for N seconds.
+                for slow_player in self.player_pool:
+                    if(player != slow_player):
+                        slow_player.goSlow()
 
             # type 2 obstacle hit
-            elif(obstacle_hit[0].type == 2):
-                pass
+            elif(hit_obstacle.type == 2):
+                # reset all other players to starting point. hit player slows down for N seconds.
+                for reset_player in self.player_pool:
+                    if(player != reset_player):
+                        reset_player.resetPosition()
+
+                player.goSlow()
 
             # type 3 obstacle hit
-            elif(obstacle_hit[0].type == 3):
-                pass
+            elif(hit_obstacle.type == 3):
+                # shuffle player positions
+                pos_save = self.player_pool[0].getPosition()
 
+                for index in range(len(self.player_pool)-1):
+                    pos = self.player_pool[index+1].getPosition()
+                    self.player_pool[index].setPosition(pos[0], pos[1])
+
+                self.player_pool[-1].setPosition(pos_save[0], pos_save[1])
+
+            # type 4 obstacle hit
+            elif(hit_obstacle.type == 4):
+                # speed up hit player for N seconds.
+                player.goFast()
+
+            # type 5 obstacle hit
+            elif(hit_obstacle.type == 5):
+                # adds points to hit player.
+                award_points = (self.current_level + 1) * 2
+                player.addPoints(award_points)
 
     ###########################################################################
     def showPlayerVictoryScreen(self):
