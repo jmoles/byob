@@ -33,7 +33,7 @@ PLAYER_2 = 2
 PLAYER_3 = 3
 
 # obstacle apply action delay
-OBSTACLE_ACTION_DELAY = 1000
+OBSTACLE_ACTION_DELAY = 100
 
 # game colors (R : G : B)
 WHITE     = (255, 255, 255) 
@@ -104,7 +104,7 @@ class Player(game.sprite.Sprite):
         self.is_alive     = True                  # is player alive
         self.default_x    = 0                     # default player x coord
         self.default_y    = 0                     # default player y coord
-        self.speed        = 4                     # object move speed
+        self.speed        = 10                     # object move speed
         self.apply_action = 0                     # how long to effect speed
 
     ###########################################################################
@@ -119,7 +119,7 @@ class Player(game.sprite.Sprite):
             self.apply_action -= 1
         else:
             # restore default speed
-            self.speed = 4
+            self.speed = 10
             print "Obstacle Action Reset."
 
         # move player in "direction" at player speed
@@ -151,13 +151,18 @@ class Player(game.sprite.Sprite):
         """Reset player x,y coordinates"""
         self.rect.x = self.default_x
         self.rect.y = self.default_y
-        self.speed = 4
+        self.speed = 10
         self.direction = STOP
 
     ###########################################################################
-    def getPlayerScore(self):
-        """Get Players Score."""
+    def getScore(self):
+        """Get Player Color."""
         return self.score
+
+    ###########################################################################
+    def getColor(self):
+        """Get Player Color."""
+        return self.color
 
     ###########################################################################
     def addPoints(self, score):
@@ -200,8 +205,8 @@ class Player(game.sprite.Sprite):
     ###########################################################################
     def resetSettings(self, direction):
         """Reset settings between levels"""
-        self.speed = 4
-        self.direction = STOP
+        self.speed        = 10
+        self.direction    = STOP
         self.apply_action = 0
 
     ###########################################################################
@@ -682,13 +687,10 @@ class Game(object):
         message = "LOADING LEVEL %d" % level
 
         self.current_level = level
-
         self.maze.generateNewMaze()
-
         self.generateObstacles()
 
         for cycle in range(4):
-
             self.screen.fill(BLACK)
             self.renderTitleMessage(message+progress, WHITE, BLACK, 25)
             
@@ -701,13 +703,13 @@ class Game(object):
 
             game.display.update()
             self.fps_clock.tick(FPS)
-       
+
+            game.time.wait(500)
+
         # reset player state for next level
         for player in self.player_pool:
             player.is_alive = True
             player.resetPosition()
-
-            game.time.wait(500)
 
     ###########################################################################
     def startLevel(self):
@@ -956,7 +958,68 @@ class Game(object):
     ###########################################################################
     def showPlayerStatScreen(self):
         """Show Player Statistics Screen."""
-        pass
+        
+        screen_width  = self.maze_width
+        screen_height = self.maze_height + self.header_height
+        bar_width = screen_width / 6
+        x = bar_width
+        unit = screen_height / 2
+
+        self.screen.fill(BLACK)
+
+        # display screen header
+        font = game.font.Font('freesansbold.ttf', 45)
+        surf = font.render("PLAYER STATISTICS", True, WHITE, BLACK)
+        rect = surf.get_rect()
+        rect.centerx = self.screen.get_rect().centerx
+        rect.centery = 50
+        self.screen.blit(surf, rect)
+
+        # collect player statistics
+        total_score = 0
+        winner_id   = 0
+        prev_score  = 0
+        for player in self.player_pool:
+            if(player.score > prev_score):
+                winner_id = player.id
+            total_score += player.score
+
+        # draw a bar graph using each players score
+        for player in self.player_pool:
+            bar_height = ( float(player.score) / float(total_score) ) * unit
+            y = screen_height - bar_height
+            score_bar = game.Rect(x, y, bar_width, bar_height)
+            game.draw.rect(self.screen, player.color, score_bar)
+            x += bar_width
+
+            # player score
+            font = game.font.Font('freesansbold.ttf', 16)
+            surf = font.render(str(player.score), True, WHITE, BLACK)
+            rect = surf.get_rect()
+            rect.centerx = score_bar.centerx 
+            rect.y = y - 25
+            self.screen.blit(surf, rect)
+
+            # player name
+            font = game.font.Font('freesansbold.ttf', 18)
+            surf = font.render(player.name, True, WHITE, BLACK)
+            rect = surf.get_rect()
+            rect.centerx = score_bar.centerx
+            rect.y = y - 50
+            self.screen.blit(surf, rect)
+
+            # draw winning star for top score player
+            if(player.id == winner_id):
+                star = game.image.load(OBSTACLE_PATH + 'finish_point.png')  
+                rect = star.get_rect() 
+                rect.centerx = score_bar.centerx 
+                rect.y = y - (70 + rect.height) 
+                self.screen.blit(star, rect)
+
+        game.display.update()
+        self.fps_clock.tick(FPS)
+
+        game.time.wait(4000)
 
     ###########################################################################
     def showGameOverScreen(self):
