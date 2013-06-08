@@ -21,6 +21,7 @@ import pygame as game
 from pygame.locals import *
 import random
 import sys
+import os
 
 FPS = 15                # refresh rate
 MAX_GAME_LEVELS  = 4    # max game levels
@@ -115,12 +116,10 @@ class Player(game.sprite.Sprite):
         
         # check if obstacle action should be applied
         if(self.apply_action):
-            print "Obstacle Action Being Applied..."
             self.apply_action -= 1
         else:
             # restore default speed
             self.speed = 10
-            print "Obstacle Action Reset."
 
         # move player in "direction" at player speed
         if(direction == STOP):    return
@@ -280,8 +279,9 @@ class Maze(object):
         self.cell_height = int(self.maze_height / self.cell_size)
 
         # load maze floor image
-        self.maze_floor = game.image.load(FLOOR_PATH + 'grass_tile.png')
+        self.loadRandomFloor()
 
+        # generate new maze matrix
         self.generateNewMaze()
 
     ###########################################################################
@@ -445,6 +445,14 @@ class Maze(object):
         """ Returns maze cell size"""
         return self.cell_size
 
+    ###########################################################################
+    def loadRandomFloor(self):
+        """Selects and loads a random floor tile."""
+        
+        floor_tiles = os.listdir(FLOOR_PATH)
+        selection = random.randrange(0, len(floor_tiles))
+        tile_name = floor_tiles[selection]
+        self.maze_floor = game.image.load(FLOOR_PATH + tile_name)
 
 ###############################################################################
 # Maze Finish Point
@@ -867,8 +875,6 @@ class Game(object):
 
         # check if obstacle is hit and perform related action
         for hit_obstacle in game.sprite.spritecollide(player, self.obstacle_pool, True):
-
-            print "Debug: Obstacle Hit Detected: Type = %d" % hit_obstacle.type
 
             # type 0 obstacle hit
             if(hit_obstacle.type == 0):
