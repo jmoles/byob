@@ -6,6 +6,7 @@ import com.joshmoles.byobcontroller.util.SystemUiHider;
 
 import android.app.ActionBar;
 import android.app.Activity;
+import android.app.ProgressDialog;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.view.View;
@@ -21,34 +22,47 @@ import com.pubnub.api.Pubnub;
  *
  * @see SystemUiHider
  */
+
+
 public class ControlActivity extends Activity {
 	
+	/**
+	 * The progress dialog for when trying to login to game.
+	 */
+	ProgressDialog joinGameLoadingDialog;
 	
     /**
      * The instance of pubnub shared between these functions.
-     * Also, a few constants used between them.
      */
     Pubnub pubnub;
-    private final String PUBNUB_CHANNEL = "player_control";
-
+    boolean pubNubOn = false;
+    
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_control);
+
         
         // Hide the action bar
         ActionBar actionBar = getActionBar();
         actionBar.hide();
         
+        // Remove focus from game password
+        findViewById(R.id.directionLayout).requestFocus();
+        
+        // Initialize the progress Dialog
+        joinGameLoadingDialog = new ProgressDialog(ControlActivity.this);
+        joinGameLoadingDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+        
         // Build the Pubnub stuff
-        pubnub = new Pubnub(
-        	    getString(R.string.publish_key),     // PUBLISH_KEY   (Optional, supply "" to disable)
-        	    getString(R.string.subscribe_key),   // SUBSCRIBE_KEY (Required)
-        	    getString(R.string.secret_key),      // SECRET_KEY    (Optional, supply "" to disable)
-        	    "",      							 // CIPHER_KEY    (Optional, supply "" to disable)
-        	    false    							 // SSL_ON?
-        	);
+//        pubnub = new Pubnub(
+//        	    Consts.PUBLISH_KEY,     
+//        	    Consts.SUBSCRIBE_KEY,   
+//        	    Consts.SECRET_KEY,      
+//        	    "",      							 // CIPHER_KEY    (Optional, supply "" to disable)
+//        	    false    							 // SSL_ON?
+//        	);
         
     }
     
@@ -57,56 +71,55 @@ public class ControlActivity extends Activity {
      * 
      */
     public void onClick(View v) {
-    	// Preapare to send a message over PubNub
-    	Hashtable<String, String> args = new Hashtable<String, String>(2);
     	
-    	String message = "null";
+    	if(pubNubOn) {
+	    	// Prepare to send a message over PubNub
+	    	Hashtable<String, String> args = new Hashtable<String, String>(2);
+	    	
+	    	String message = "null";
+	    	
+	    	// Put the channel on the args
+	    	args.put("channel", Consts.PUBNUB_CHANNEL);
+	    	
+	    	
+	    	switch(v.getId()) {
+	    	case R.id.buttonUp:
+	    		message = "up";
+	    		break;
+	    	case R.id.buttonDown:
+	    		message = "down";
+	    		break;
+	    	case R.id.buttonLeft:
+	    		message = "left";
+	    		break;
+	    	case R.id.buttonRight:
+	    		message = "right";
+	    		break;
+	    	case R.id.buttonA:
+	    		message = "A";
+	    		break;
+	    	case R.id.buttonB:
+	    		message = "B";
+	    		break;
+	    	}
+	    	
+	    	args.put("message", message);
+	    	
+	    	pubnub.publish(args, new Callback() {
+	    	    public void successCallback(String channel, Object message) {
+	    	        // Do nothing
+	    	    }
+	
+	    	    public void errorCallback(String channel, Object message) {
+	    	    }
+	    	});
     	
-    	// Put the channel on the args
-    	args.put("channel", PUBNUB_CHANNEL);
-    	
-    	
-    	switch(v.getId()) {
-    	case R.id.buttonUp:
-    		message = "up";
-    		break;
-    	case R.id.buttonDown:
-    		message = "down";
-    		break;
-    	case R.id.buttonLeft:
-    		message = "left";
-    		break;
-    	case R.id.buttonRight:
-    		message = "right";
-    		break;
-    	case R.id.buttonA:
-    		message = "A";
-    		break;
-    	case R.id.buttonB:
-    		message = "B";
-    		break;
-    	}
-    	
-    	args.put("message", message);
-    	
-    	pubnub.publish(args, new Callback() {
-    	    public void successCallback(String channel, Object message) {
-    	        // Do nothing
-    	    }
+    	} else {
 
-    	    public void errorCallback(String channel, Object message) {
-    	    	notifyUser("FAILED TO SEND" + channel + " : " + message.toString());
-    	    }
-    	});
+    		
+    	}
     }
-    
-    private void notifyUser(final String toastStr) {
-    	runOnUiThread(new Runnable() {
-    		public void run() {
-    			Toast.makeText(ControlActivity.this, toastStr, Toast.LENGTH_SHORT).show();
-    		}
-    	});
-    }
+   
     
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
