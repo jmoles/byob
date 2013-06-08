@@ -17,10 +17,9 @@
         android:layout_height="match_parent"
         android:gravity="center"
         android:keepScreenOn="true"
-        android:text="@string/dummy_content"
-        android:textColor="#33b5e5"
         android:textSize="50sp"
-        android:textStyle="bold" />
+        android:textStyle="bold"
+        android:background="#000000" />
 
     <!--
          This FrameLayout insets its children based on system windows using
@@ -40,7 +39,7 @@
                 <Button
                     android:id="@+id/buttonUp"
                     android:layout_width="fill_parent"
-                    android:layout_height="75dp"
+                    android:layout_height="75sp"
                     android:onClick="onClick"
                     android:text="@string/button_up" />
 
@@ -54,7 +53,7 @@
                 <Button
                     android:id="@+id/buttonLeft"
                     android:layout_width="fill_parent"
-                    android:layout_height="75dp"
+                    android:layout_height="75sp"
                     android:layout_below="@id/buttonUp"
                     android:layout_toLeftOf="@id/lrStrut"
                     android:onClick="onClick"
@@ -63,7 +62,7 @@
                 <Button
                     android:id="@+id/buttonRight"
                     android:layout_width="fill_parent"
-                    android:layout_height="75dp"
+                    android:layout_height="75sp"
                     android:layout_below="@id/buttonUp"
                     android:layout_toRightOf="@id/lrStrut"
                     android:onClick="onClick"
@@ -72,7 +71,7 @@
                 <Button
                     android:id="@+id/buttonDown"
                     android:layout_width="fill_parent"
-                    android:layout_height="75dp"
+                    android:layout_height="75sp"
                     android:layout_below="@id/buttonLeft"
                     android:onClick="onClick"
                     android:text="@string/button_down" />
@@ -82,7 +81,8 @@
                 android:id="@+id/buttonLayout"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_below="@id/directionLayout" >
+                android:layout_below="@id/directionLayout"
+                android:visibility="gone" >
                 
                 <View
                     android:id="@+id/abStrut"
