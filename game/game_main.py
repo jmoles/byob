@@ -27,6 +27,14 @@ MAX_GAME_LEVELS  = 4    # max game levels
 MAX_GAME_PLAYERS = 4    # max game players
 MAX_TYPE_COUNT   = 6    # max obstacle types
 
+PLAYER_0 = 0
+PLAYER_1 = 1
+PLAYER_2 = 2
+PLAYER_3 = 3
+
+# obstacle apply action delay
+OBSTACLE_ACTION_DELAY = 1000
+
 # game colors (R : G : B)
 WHITE     = (255, 255, 255) 
 BLACK     = (  0,   0,   0)
@@ -47,10 +55,11 @@ CYAN      = (0  , 255, 255)
 MAROON    = (128,   0,   0)
 
 # define direction
-UP    = "up"
-DOWN  = "down"
-LEFT  = "left"
-RIGHT = "right"
+STOP  = 0  
+UP    = 1  #"up"
+DOWN  = 2  #"down"
+LEFT  = 3  #"left"
+RIGHT = 4  #"right"
 
 IMAGE_PATH = './/image//'
 SOUND_PATH = './/sound//'
@@ -84,27 +93,38 @@ class Player(game.sprite.Sprite):
     def __init__(self, name, id, color, character, control):
         game.sprite.Sprite.__init__(self)
 
-        self.name       = name                  # player name
-        self.id         = id                    # player id number
-        self.color      = color                 # player color
-        self.image      = character             # player character
-        self.rect       = character.get_rect()  # player position data (x,y)      
-        self.score      = 0                     # player score 
-        self.controller = Controller(control)   # controller object ptr
-        self.direction  = None                  # move direction
-        self.speed      = 20                    # object move speed
-        self.is_alive   = True                  # is player alive
-        self.default_x  = 0                     # default player x coord
-        self.default_y  = 0                     # default player y coord
+        self.name         = name                  # player name
+        self.id           = id                    # player id number
+        self.color        = color                 # player color
+        self.image        = character             # player character
+        self.rect         = character.get_rect()  # player position data (x,y)      
+        self.score        = 0                     # player score 
+        self.controller   = Controller(control)   # controller object ptr
+        self.direction    = STOP                  # move direction
+        self.is_alive     = True                  # is player alive
+        self.default_x    = 0                     # default player x coord
+        self.default_y    = 0                     # default player y coord
+        self.speed        = 4                     # object move speed
+        self.apply_action = 0                     # how long to effect speed
 
     ###########################################################################
     def update(self, direction):
         """Player update class -- used by base class"""
 
         self.direction = direction
+        
+        # check if obstacle action should be applied
+        if(self.apply_action):
+            print "Obstacle Action Being Applied..."
+            self.apply_action -= 1
+        else:
+            # restore default speed
+            self.speed = 4
+            print "Obstacle Action Reset."
 
         # move player in "direction" at player speed
-        if(direction == UP):      self.rect.y -= self.speed
+        if(direction == STOP):    return
+        elif(direction == UP):    self.rect.y -= self.speed
         elif(direction == RIGHT): self.rect.x += self.speed
         elif(direction == DOWN):  self.rect.y += self.speed
         elif(direction == LEFT):  self.rect.x -= self.speed
@@ -131,6 +151,8 @@ class Player(game.sprite.Sprite):
         """Reset player x,y coordinates"""
         self.rect.x = self.default_x
         self.rect.y = self.default_y
+        self.speed = 4
+        self.direction = STOP
 
     ###########################################################################
     def getPlayerScore(self):
@@ -145,31 +167,42 @@ class Player(game.sprite.Sprite):
     ###########################################################################
     def goFast(self):
         """Increase players speed"""
-        #self.speed = 40
-        pass
+        self.speed        = 8
+        self.apply_action = OBSTACLE_ACTION_DELAY
 
     ###########################################################################
     def goSlow(self):
         """Decrease players speed"""
-        #self.speed = 10
-        pass
-
-    ###########################################################################
-    def goNormal(self):
-        """Restores players default speed"""
-        #self.score = 20
-        pass
+        self.speed        = 2
+        self.apply_action = OBSTACLE_ACTION_DELAY
 
     ###########################################################################
     def freeze(self):
         """Stop player from moving"""
-        #self.score = 0
-        pass
+        self.speed        = 0
+        self.apply_action = OBSTACLE_ACTION_DELAY
 
     ###########################################################################
-    def getPlayerControlType(self):
+    def getControlType(self):
         """Get Player Controller Type"""
         return self.controller.getType()
+
+    ###########################################################################
+    def getDirection(self):
+        """Get Player Direction"""
+        return self.direction
+
+    ###########################################################################
+    def setDirection(self, direction):
+        """Set Player Direction"""
+        self.direction = direction
+
+    ###########################################################################
+    def resetSettings(self, direction):
+        """Reset settings between levels"""
+        self.speed = 4
+        self.direction = STOP
+        self.apply_action = 0
 
     ###########################################################################
     def draw(self, screen):
@@ -454,6 +487,9 @@ class Game(object):
         # last player finished tracking
         self.players_finished = 0 
 
+        # obstacle speed change timeout
+        self.obstacle_action = 0
+
         # create new maze object, and get maze attributes
         self.maze        = Maze(self.header_height)
         self.maze_width  = self.maze.getWindowWidth()
@@ -473,6 +509,9 @@ class Game(object):
         self.player_color = (CYAN, RED, GREEN, YELLOW)
         self.player_pool  = []
         self.generatePlayers() # create new player objects
+        
+        # store player direction (FIXME move to player class)
+        self.direction = [-1] * MAX_GAME_PLAYERS 
 
         # obstacle objects are stored in "obstacle_pool" class
         self.obstacle_count = (5, 10, 15, 20)
@@ -674,44 +713,108 @@ class Game(object):
     def startLevel(self):
         """Show Player Victory Screen."""
 
-        redraw_screen = True
         self.game_in_progress = True
 
         while(self.game_in_progress): 
 
             for event in game.event.get():
                
-                if(event.type == QUIT): self.exitGame()
+                if(event.type == QUIT): 
+                    self.exitGame()
 
-                # FIXME - support only for player 0
+                # FIXME - This section of code needs more work.
                 if(event.type == KEYDOWN):
-                    redraw_screen = True
-
-                    if(event.key == K_LEFT):    direction = LEFT
-                    elif(event.key == K_RIGHT): direction = RIGHT
-                    elif(event.key == K_UP):    direction = UP
-                    elif(event.key == K_DOWN):  direction = DOWN
                     
-                    self.updatePlayerPosition(self.player_pool[0], direction)
+                    #######################################
+                    # Handle Player 0 Events (UP/DN/LT/RT)
+                    #######################################
+                    player_0 = self.player_pool[PLAYER_0]
 
+                    if(event.key == K_LEFT):
+                        if(player_0.getDirection() == RIGHT):
+                            player_0.setDirection(STOP)
+                        else:
+                            player_0.setDirection(LEFT)
 
-            if(redraw_screen):
-                self.renderMaze()
-                self.renderExitPoint()
-                self.renderPlayers()
-                self.renderObstacles()
-                self.renderScore()
+                    elif(event.key == K_RIGHT):
+                        if(player_0.getDirection() == LEFT):
+                            player_0.setDirection(STOP)
+                        else:
+                            player_0.setDirection(RIGHT)
 
-                game.display.update()
-                self.fps_clock.tick(FPS)
+                    elif(event.key == K_UP):
+                        if(player_0.getDirection() == DOWN):
+                            player_0.setDirection(STOP)
+                        else:
+                            player_0.setDirection(UP)
 
-                redraw_screen = False
-        
+                    elif(event.key == K_DOWN):
+                        if(player_0.getDirection() == UP):
+                            player_0.setDirection(STOP)
+                        else:
+                            player_0.setDirection(DOWN)
+
+                    #######################################
+                    # Handle Player 1 Events (K8/K2/K4/K6)
+                    #######################################
+                    player_1 = self.player_pool[PLAYER_1]
+
+                    if(event.key == K_KP4):
+                        if(player_1.getDirection() == RIGHT):
+                            player_1.setDirection(STOP)
+                        else:
+                            player_1.setDirection(LEFT)
+
+                    elif(event.key == K_KP6):
+                        if(player_1.getDirection() == LEFT):
+                            player_1.setDirection(STOP)
+                        else:
+                            player_1.setDirection(RIGHT)
+
+                    elif(event.key == K_KP8):
+                        if(player_1.getDirection() == DOWN):
+                            player_1.setDirection(STOP)
+                        else:
+                            player_1.setDirection(UP)
+
+                    elif(event.key == K_KP2):
+                        if(player_1.getDirection() == UP):
+                            player_1.setDirection(STOP)
+                        else:
+                            player_1.setDirection(DOWN)
+
+                    #######################################
+                    # Handle Player 2 Events (controller 3)
+                    #######################################
+                    # code here
+
+                    #######################################
+                    # Handle Player 3 Events (controller 4)
+                    #######################################
+                    # code here
+
+            # Move all players
+            for player in self.player_pool:
+                self.updatePlayerPosition(player)
+
+            self.renderMaze()
+            self.renderExitPoint()
+            self.renderPlayers()
+            self.renderObstacles()
+            self.renderScore()
+
+            game.display.update()
+            self.fps_clock.tick(FPS)
+
     ###########################################################################
-    def updatePlayerPosition(self, player, direction):
+    def updatePlayerPosition(self, player):
         """Update player position if no collision is dectected."""
 
         recover_direction = None
+
+        direction = player.getDirection()
+
+        if(direction == STOP): return
 
         if(direction == LEFT):    recover_direction = RIGHT
         elif(direction == RIGHT): recover_direction = LEFT
@@ -724,15 +827,18 @@ class Game(object):
         # check if that results in a collision with wall
         if(game.sprite.spritecollideany(player, self.maze.wall_pool) != None):
             player.update(recover_direction) # if collision, restore last position.
+            player.setDirection(STOP)
 
         # check left and right screen limits
         elif(player.rect.x < 0 or (player.rect.x + self.cell_size) > self.maze_width):
             player.update(recover_direction)
+            player.setDirection(STOP)
 
         # check top and bottom screen limits
         elif(player.rect.y < self.header_height or \
             (player.rect.y + self.cell_size) > (self.maze_height + self.header_height)):
             player.update(recover_direction)
+            player.setDirection(STOP)
 
         # check if finish point is reached
         elif(game.sprite.spritecollideany(player, self.finish_point) != None):
@@ -754,13 +860,10 @@ class Game(object):
         # perform collision detection between players
         elif(len(player.rect.collidelistall(self.player_pool)) > 1):
             player.update(recover_direction)
+            player.setDirection(STOP)
 
 
         # check if obstacle is hit and perform related action
-        #obstacle_hit_list = game.sprite.spritecollide(player, self.obstacle_pool, True)
-       
-        # perform obstacle related action
-        #if(len(obstacle_hit) > 0):
         for hit_obstacle in game.sprite.spritecollide(player, self.obstacle_pool, True):
 
             print "Debug: Obstacle Hit Detected: Type = %d" % hit_obstacle.type
@@ -815,15 +918,18 @@ class Game(object):
         """Show Player Victory Screen."""
         
         flash      = True
-        winner     = 0
+        index      = 0
         last_score = 0
+        winner     = None
 
         # play victory sound
         self.level_victory_sound.play()
 
         for player in self.player_pool:
             if(player.score > last_score):
-                winner = player
+                index = player.id
+
+        winner = self.player_pool[index]
        
         message = "%s is Winner!!!" % winner.name
 
