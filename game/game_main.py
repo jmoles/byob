@@ -547,7 +547,7 @@ class Game(object):
         self.finish_point = game.sprite.Group()
         self.finish_point.add(finish)
 
-        game.display.set_caption("Maze Madeness")
+        game.display.set_caption("B.Y.O.B")
         
     ###########################################################################
     def generatePlayers(self):
@@ -645,7 +645,7 @@ class Game(object):
         y = self.screen.get_rect().centery - (splash.get_height() / 2) + 15
 
         offset  = (splash.get_height() / 2)
-        message = "MAZE MADNESS" 
+        message = "B.Y.O.B" 
 
         for wait in range(10):
             self.screen.fill(BLACK)
