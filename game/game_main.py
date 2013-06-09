@@ -105,21 +105,31 @@ class Player(game.sprite.Sprite):
         self.is_alive     = True                  # is player alive
         self.default_x    = 0                     # default player x coord
         self.default_y    = 0                     # default player y coord
-        self.speed        = 20                     # object move speed
+        self.speed        = 20                    # object move speed
         self.apply_action = 0                     # how long to effect speed
+        self.move_delay   = 1                     # number of moves to ignore
+        self.delay_count  = 0                     # running delay counter
 
     ###########################################################################
-    def update(self, direction):
+    def update(self, direction, do_update=True):
         """Player update class -- used by base class"""
 
         self.direction = direction
         
-        # check if obstacle action should be applied
-        if(self.apply_action):
-            self.apply_action -= 1
-        else:
-            # restore default speed
-            self.speed = 20
+        if(do_update):
+
+            # check if obstacle action should be applied
+            if(self.apply_action):
+                self.apply_action -= 1
+            else:
+                # restore default step divisor
+                self.speed = 20
+
+            if(self.delay_count < self.move_delay):
+                self.delay_count += 1
+                return
+            else:
+                self.delay_count = 0
 
         # move player in "direction" at player speed
         if(direction == STOP):    return
@@ -150,8 +160,6 @@ class Player(game.sprite.Sprite):
         """Reset player x,y coordinates"""
         self.rect.x = self.default_x
         self.rect.y = self.default_y
-        #self.speed = 10
-        #self.direction = STOP
 
     ###########################################################################
     def getScore(self):
@@ -171,13 +179,13 @@ class Player(game.sprite.Sprite):
     ###########################################################################
     def goFast(self):
         """Increase players speed"""
-        self.speed        = 8
+        self.move_delay   = 0
         self.apply_action = OBSTACLE_ACTION_DELAY
 
     ###########################################################################
     def goSlow(self):
         """Decrease players speed"""
-        self.speed        = 2
+        self.move_delay   = 2 
         self.apply_action = OBSTACLE_ACTION_DELAY
 
     ###########################################################################
@@ -207,6 +215,7 @@ class Player(game.sprite.Sprite):
         self.speed        = 20
         self.direction    = STOP
         self.apply_action = 0
+        self.move_delay   = 1
 
     ###########################################################################
     def draw(self, screen):
@@ -829,18 +838,18 @@ class Game(object):
         
         # check if that results in a collision with wall
         if(game.sprite.spritecollideany(player, self.maze.wall_pool) != None):
-            player.update(recover_direction) # if collision, restore last position.
+            player.update(recover_direction, False) # if collision, restore last position.
             player.setDirection(STOP)
 
         # check left and right screen limits
         elif(player.rect.x < 0 or (player.rect.x + self.cell_size) > self.maze_width):
-            player.update(recover_direction)
+            player.update(recover_direction, False)
             player.setDirection(STOP)
 
         # check top and bottom screen limits
         elif(player.rect.y < self.header_height or \
             (player.rect.y + self.cell_size) > (self.maze_height + self.header_height)):
-            player.update(recover_direction)
+            player.update(recover_direction, False)
             player.setDirection(STOP)
 
         # check if finish point is reached
@@ -862,7 +871,7 @@ class Game(object):
 
         # perform collision detection between players
         elif(len(player.rect.collidelistall(self.player_pool)) > 1):
-            player.update(recover_direction)
+            player.update(recover_direction, False)
             player.setDirection(STOP)
 
 
