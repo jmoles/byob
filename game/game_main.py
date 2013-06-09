@@ -34,7 +34,7 @@ PLAYER_2 = 2
 PLAYER_3 = 3
 
 # obstacle apply action delay
-OBSTACLE_ACTION_DELAY = 100
+OBSTACLE_ACTION_DELAY = 50
 
 # game colors (R : G : B)
 WHITE     = (255, 255, 255) 
@@ -105,7 +105,7 @@ class Player(game.sprite.Sprite):
         self.is_alive     = True                  # is player alive
         self.default_x    = 0                     # default player x coord
         self.default_y    = 0                     # default player y coord
-        self.speed        = 10                     # object move speed
+        self.speed        = 20                     # object move speed
         self.apply_action = 0                     # how long to effect speed
 
     ###########################################################################
@@ -119,7 +119,7 @@ class Player(game.sprite.Sprite):
             self.apply_action -= 1
         else:
             # restore default speed
-            self.speed = 10
+            self.speed = 20
 
         # move player in "direction" at player speed
         if(direction == STOP):    return
@@ -150,8 +150,8 @@ class Player(game.sprite.Sprite):
         """Reset player x,y coordinates"""
         self.rect.x = self.default_x
         self.rect.y = self.default_y
-        self.speed = 10
-        self.direction = STOP
+        #self.speed = 10
+        #self.direction = STOP
 
     ###########################################################################
     def getScore(self):
@@ -204,7 +204,7 @@ class Player(game.sprite.Sprite):
     ###########################################################################
     def resetSettings(self, direction):
         """Reset settings between levels"""
-        self.speed        = 10
+        self.speed        = 20
         self.direction    = STOP
         self.apply_action = 0
 
@@ -516,20 +516,15 @@ class Game(object):
         width  = self.maze_width
         height = self.maze_height + self.header_height
         self.screen = game.display.set_mode( (width, height) )
-        #self.screen.convert() 
 
         # player objects are stored in "player_pool" class
         self.player_color = (CYAN, RED, GREEN, YELLOW)
         self.player_pool  = []
         self.generatePlayers() # create new player objects
         
-        # store player direction (FIXME move to player class)
-        self.direction = [-1] * MAX_GAME_PLAYERS 
-
         # obstacle objects are stored in "obstacle_pool" class
         self.obstacle_count = (5, 10, 15, 20)
         self.obstacle_pool = game.sprite.Group()
-        #self.generateObstacles() # create new obstacles
 
         # load game sounds
         self.game_start_sound    = game.mixer.Sound(SOUND_PATH + 'game_start.wav') 
@@ -729,79 +724,77 @@ class Game(object):
 
             for event in game.event.get():
                
-                if(event.type == QUIT): 
-                    self.exitGame()
+                if(event.type == QUIT): self.exitGame()
 
-                # FIXME - This section of code needs more work.
-                if(event.type == KEYDOWN):
-                    
-                    #######################################
-                    # Handle Player 0 Events (UP/DN/LT/RT)
-                    #######################################
-                    player_0 = self.player_pool[PLAYER_0]
+                #####################################################
+                # Handle Player 0 Events (UP/DN/LT/RT)
+                #####################################################
+
+                if(event.type in [KEYDOWN, KEYUP]):
 
                     if(event.key == K_LEFT):
-                        if(player_0.getDirection() == RIGHT):
-                            player_0.setDirection(STOP)
-                        else:
-                            player_0.setDirection(LEFT)
+                        if(event.type == KEYDOWN):
+                            self.player_pool[PLAYER_0].setDirection(LEFT)
+                        elif(event.type == KEYUP):
+                            self.player_pool[PLAYER_0].setDirection(STOP)
 
                     elif(event.key == K_RIGHT):
-                        if(player_0.getDirection() == LEFT):
-                            player_0.setDirection(STOP)
-                        else:
-                            player_0.setDirection(RIGHT)
+                        if(event.type == KEYDOWN):
+                            self.player_pool[PLAYER_0].setDirection(RIGHT)
+                        elif(event.type == KEYUP):
+                            self.player_pool[PLAYER_0].setDirection(STOP)
 
                     elif(event.key == K_UP):
-                        if(player_0.getDirection() == DOWN):
-                            player_0.setDirection(STOP)
-                        else:
-                            player_0.setDirection(UP)
+                        if(event.type == KEYDOWN):
+                            self.player_pool[PLAYER_0].setDirection(UP)
+                        elif(event.type == KEYUP):
+                            self.player_pool[PLAYER_0].setDirection(STOP)
 
                     elif(event.key == K_DOWN):
-                        if(player_0.getDirection() == UP):
-                            player_0.setDirection(STOP)
-                        else:
-                            player_0.setDirection(DOWN)
+                        if(event.type == KEYDOWN):
+                            self.player_pool[PLAYER_0].setDirection(DOWN)
+                        elif(event.type == KEYUP):
+                            self.player_pool[PLAYER_0].setDirection(STOP)
 
-                    #######################################
-                    # Handle Player 1 Events (K8/K2/K4/K6)
-                    #######################################
-                    player_1 = self.player_pool[PLAYER_1]
+                #####################################################
+                # Handle Player 1 Events (K8/K2/K4/K6)
+                #####################################################
+
+                if(event.type in [KEYDOWN, KEYUP]):
 
                     if(event.key == K_KP4):
-                        if(player_1.getDirection() == RIGHT):
-                            player_1.setDirection(STOP)
-                        else:
-                            player_1.setDirection(LEFT)
+                        if(event.type == KEYDOWN):
+                            self.player_pool[PLAYER_1].setDirection(LEFT)
+                        elif(event.type == KEYUP):
+                            self.player_pool[PLAYER_1].setDirection(STOP)
 
                     elif(event.key == K_KP6):
-                        if(player_1.getDirection() == LEFT):
-                            player_1.setDirection(STOP)
-                        else:
-                            player_1.setDirection(RIGHT)
+                        if(event.type == KEYDOWN):
+                            self.player_pool[PLAYER_1].setDirection(RIGHT)
+                        elif(event.type == KEYUP):
+                            self.player_pool[PLAYER_1].setDirection(STOP)
 
                     elif(event.key == K_KP8):
-                        if(player_1.getDirection() == DOWN):
-                            player_1.setDirection(STOP)
-                        else:
-                            player_1.setDirection(UP)
+                        if(event.type == KEYDOWN):
+                            self.player_pool[PLAYER_1].setDirection(UP)
+                        elif(event.type == KEYUP):
+                            self.player_pool[PLAYER_1].setDirection(STOP)
 
                     elif(event.key == K_KP2):
-                        if(player_1.getDirection() == UP):
-                            player_1.setDirection(STOP)
-                        else:
-                            player_1.setDirection(DOWN)
+                        if(event.type == KEYDOWN):
+                            self.player_pool[PLAYER_1].setDirection(DOWN)
+                        elif(event.type == KEYUP):
+                            self.player_pool[PLAYER_1].setDirection(STOP)
 
-                    #######################################
-                    # Handle Player 2 Events (controller 3)
-                    #######################################
-                    # code here
+                #####################################################
+                # Handle Player 2 Events (controller 3)
+                #####################################################
+                # code here
 
-                    #######################################
-                    # Handle Player 3 Events (controller 4)
-                    #######################################
-                    # code here
+                #####################################################
+                # Handle Player 3 Events (controller 4)
+                #####################################################
+                # code here
 
             # Move all players
             for player in self.player_pool:
