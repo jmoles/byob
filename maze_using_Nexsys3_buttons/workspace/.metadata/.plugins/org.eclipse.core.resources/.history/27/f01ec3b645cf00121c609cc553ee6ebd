@@ -1,0 +1,101 @@
+/********** Include Files ***********/
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+#include "mb_interface.h"
+#include "xparameters.h"
+#include "xbasic_types.h"
+#include "xgpio.h"
+
+// Microblaze Cache Parameters
+#define	USE_ICACHE				XPAR_MICROBLAZE_0_USE_ICACHE
+#define	USE_DCACHE				XPAR_MICROBLAZE_0_USE_DCACHE
+#define USE_DCACHE_WRITEBACK	XPAR_MICROBLAZE_DCACHE_USE_WRITEBACK
+
+// Declarations
+#define BTN_GPIO_DEVICEID		XPAR_PUSH_BUTTONS_4BITS_DEVICE_ID
+#define LED_GPIO_DEVICEID		XPAR_LEDS_8BITS_DEVICE_ID
+
+#define MASK_BUTTONS			0x00F0
+#define DEFAULT_CHANNEL         1
+
+// Peripheral instances
+XGpio BTNInst, LEDInst;
+
+// Function declarations
+XStatus init_peripherals(void);
+
+
+int main()
+{
+
+    XStatus sts;
+
+	// Enable the Microblaze caches and
+	// kick off the processing by enabling the Microblaze interrupt
+	// this starts the FIT timer which updates the timestamp.
+	if (USE_ICACHE == 1)
+	{
+		microblaze_invalidate_icache();
+		microblaze_enable_icache();
+	}
+	if (USE_DCACHE == 1)
+	{
+		microblaze_invalidate_dcache();
+		microblaze_enable_dcache();
+	}
+	 microblaze_enable_interrupts();
+
+
+    // initialize the peripherals
+    sts = init_peripherals();
+    if (sts != XST_SUCCESS)
+    {
+    	xil_printf("FATAL ERROR: Could not initialize the peripherals\n\r");
+		xil_printf("Please power cycle or reset the system\n\r");
+		return -1;
+    }
+
+	
+	while(1)
+	{
+		u32 btnsw;
+	
+		btnsw = XGpio_DiscreteRead(&BTNInst, DEFAULT_CHANNEL) & MASK_BUTTONS;	//read the pushbutton switches
+		XGpio_DiscreteWrite(&LEDInst, DEFAULT_CHANNEL, btnsw);	//display respective LEDs
+	
+	 xil_printf("\r\nWrite something...\r\n");
+	}
+	
+
+}
+
+
+// init_peripherals() - Initializes the peripherals
+XStatus init_peripherals(void)
+{
+
+	//***** INSERT YOUR PERIPHERAL INITIALIZATION CODE HERE ******//
+	XStatus Status;
+	//GPIO Initialize
+	Status = XGpio_Initialize(&BTNInst, BTN_GPIO_DEVICEID);
+		if (Status != XST_SUCCESS)
+		{
+			xil_printf("Init ERROR: GPIO Initialization Failed \r\n");
+			return XST_FAILURE;
+		}
+	XGpio_SetDataDirection(&BTNInst, DEFAULT_CHANNEL, 0x0F);	//Input data direction for last 4 bits
+
+	//LEDs Initialize
+	Status = XGpio_Initialize(&LEDInst, LED_GPIO_DEVICEID);
+		if (Status != XST_SUCCESS)
+		{
+			xil_printf("Init ERROR: LED Initialization Failed \r\n");
+			return XST_FAILURE;
+		}
+	XGpio_SetDataDirection(&LEDInst, DEFAULT_CHANNEL, 0x00);	//set output direction
+
+
+	return XST_SUCCESS;
+}

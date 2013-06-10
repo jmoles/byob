@@ -1,0 +1,7 @@
+INFILE=E:\Embedded_System\Projects\maze_using_buttons\embsys\implementation\system.ncd
+OUTFILE=E:\Embedded_System\Projects\maze_using_buttons\embsys\implementation\system.bit
+FAMILY=Spartan6
+PART=xc6slx16-3csg324
+WORKINGDIR=E:\Embedded_System\Projects\maze_using_buttons\embsys\implementation
+LICENSE=WebPack
+USER_INFO=210415117_0_0_006
