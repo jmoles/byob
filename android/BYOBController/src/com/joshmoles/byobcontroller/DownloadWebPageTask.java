@@ -43,12 +43,12 @@ public class DownloadWebPageTask extends AsyncTask<String, Void, ConfigEntry>{
 				storedE = e;
 				this.cancel(true);
 			}
-			Log.i(Consts.LOAD_FETCH, "At post HTTP fetch.");
+			Log.d(Consts.LOAD_FETCH, "At post HTTP fetch.");
 			
 		    // Instantiate the parser
 		    ConfigurationWebXMLParser configParser = new ConfigurationWebXMLParser();
 		    
-		    Log.i(Consts.LOAD_FETCH, "XML Parsing worked");
+		    Log.d(Consts.LOAD_FETCH, "XML Parsing worked");
 		    
 		    try {
 				myConfig = configParser.parse(is);
@@ -65,7 +65,7 @@ public class DownloadWebPageTask extends AsyncTask<String, Void, ConfigEntry>{
 			} 
 		    
 		    // If we get here, myConfig Parser succeeded.
-		    Log.i(Consts.LOAD_FETCH, "Done with doInbackground.");
+		    Log.d(Consts.LOAD_FETCH, "Done with doInbackground.");
 			
 		} catch (IOException e) {
 			storedE = e;

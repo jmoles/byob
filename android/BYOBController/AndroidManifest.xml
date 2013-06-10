@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.joshmoles.byobcontroller"
+    android:installLocation="auto"
     android:versionCode="1"
-    android:versionName="1.0" android:installLocation="auto">
+    android:versionName="1.0" >
 
     <uses-sdk
         android:minSdkVersion="11"
@@ -10,6 +11,7 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
         android:allowBackup="true"
@@ -18,17 +20,18 @@
         android:theme="@style/AppTheme" >
         <activity
             android:name="com.joshmoles.byobcontroller.MainActivity"
-            android:label="@string/app_name">
+            android:label="@string/app_name" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
         <activity
             android:name="com.joshmoles.byobcontroller.ControlActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
-            android:theme="@style/FullscreenTheme"
-            android:parentActivityName="com.joshmoles.byobcontroller.MainActivity" >
+            android:parentActivityName="com.joshmoles.byobcontroller.MainActivity"
+            android:theme="@style/FullscreenTheme" >
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.joshmoles.byobcontroller.MainActivity" />
@@ -36,14 +39,12 @@
         <activity
             android:name="com.joshmoles.byobcontroller.Loading"
             android:label="@string/title_activity_loading"
-            android:parentActivityName="com.joshmoles.byobcontroller.MainActivity"
-            android:noHistory="true" >
-            
+            android:noHistory="true"
+            android:parentActivityName="com.joshmoles.byobcontroller.MainActivity" >
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.joshmoles.byobcontroller.MainActivity" />
         </activity>
-
     </application>
 
 </manifest>

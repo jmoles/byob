@@ -19,6 +19,7 @@ public class ConfigurationWebXMLParser {
 	// Class to hold the configuration read from web site.
 	public static class ConfigEntry implements Parcelable{
 		
+		// Constants for where items are in array.
 		public final String pubnubSubscribe;
 		public final String pubnubPublish;
 		public final String pubnubSecret;
@@ -88,9 +89,9 @@ public class ConfigurationWebXMLParser {
 	        }
 	        String name = parser.getName();
 	        if (name.equals("pubnub_pub")) {
-	        	pubnubSubscribe = readPubNub(parser, name);
-	        } else if (name.equals("pubnub_sub")) {
 	        	pubnubPublish = readPubNub(parser, name);
+	        } else if (name.equals("pubnub_sub")) {
+	        	pubnubSubscribe = readPubNub(parser, name);
 	        } else if (name.equals("pubnub_sec")) {
 	        	pubnubSecret = readPubNub(parser, name);
 	        } else {

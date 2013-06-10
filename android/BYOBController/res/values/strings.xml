@@ -21,5 +21,6 @@
     <string name="toast_no_connection_error">No network connection is available. Please check network connection and try again.</string>
     <string name="network_exception">Network connection failed. Please try again or contact developer.</string>
     <string name="invalid_password">An invalid password was provided. Please try again.</string>
+    <string name="game_full">Game is presently full. Please try again later.</string>
 
 </resources>
