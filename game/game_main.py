@@ -57,13 +57,15 @@ MAROON    = (128,   0,   0)
 
 # define direction
 STOP  = 0  
-UP    = 1  #"up"
-DOWN  = 2  #"down"
-LEFT  = 3  #"left"
-RIGHT = 4  #"right"
+UP    = 1
+DOWN  = 2
+LEFT  = 3
+RIGHT = 4
 
-IMAGE_PATH = './/image//'
-SOUND_PATH = './/sound//'
+IMAGE_PATH   = './/image//'
+SOUND_PATH_1 = './/sound//'
+SOUND_PATH_2 = '../assets/audio/shawshank73/'
+SOUND_PATH_3 = '../assets/audio/djgriffin/'
 
 CHARACTER_PATH = IMAGE_PATH + 'character//'
 FLOOR_PATH     = IMAGE_PATH + 'floor//'
@@ -124,6 +126,7 @@ class Player(game.sprite.Sprite):
             else:
                 # restore default step divisor
                 self.speed = 20
+                self.move_delay = 1
 
             if(self.delay_count < self.move_delay):
                 self.delay_count += 1
@@ -539,13 +542,14 @@ class Game(object):
         self.obstacle_pool = game.sprite.Group()
 
         # load game sounds
-        self.next_level_sound    = game.mixer.Sound(SOUND_PATH + 'next_level.wav') 
-        self.game_over_sound     = game.mixer.Sound('../assets/audio/shawshank73/game_over.ogg') 
-        self.finish_reached      = game.mixer.Sound('../assets/audio/shawshank73/winner.ogg') 
-        self.sound_round_one     = game.mixer.Sound('../assets/audio/shawshank73/round1.ogg')
-        self.sound_round_two     = game.mixer.Sound('../assets/audio/shawshank73/round2.ogg')
-        self.sound_round_three   = game.mixer.Sound('../assets/audio/shawshank73/round3.ogg')
-        self.sound_round_final   = game.mixer.Sound('../assets/audio/shawshank73/roundfinal.ogg')
+        self.level_victory     = game.mixer.Sound(SOUND_PATH_1 + 'level_victory.wav')
+        self.obstacle_hit      = game.mixer.Sound(SOUND_PATH_1 + 'obstacle_hit.wav')
+        self.game_over_sound   = game.mixer.Sound(SOUND_PATH_2 + 'game_over.ogg') 
+        self.finish_reached    = game.mixer.Sound(SOUND_PATH_2 + 'winner.ogg') 
+        self.sound_round_one   = game.mixer.Sound(SOUND_PATH_2 + 'round1.ogg')
+        self.sound_round_two   = game.mixer.Sound(SOUND_PATH_2 + 'round2.ogg')
+        self.sound_round_three = game.mixer.Sound(SOUND_PATH_2 + 'round3.ogg')
+        self.sound_round_final = game.mixer.Sound(SOUND_PATH_2 + 'roundfinal.ogg')
 
         # create finish point object
         width  = self.maze_width
@@ -630,7 +634,7 @@ class Game(object):
         """Start playing the game."""
 
         # load game music, set the volume to 50%, and start it.
-        game.mixer.music.load('../assets/audio/djgriffin/video-game-7.ogg')
+        game.mixer.music.load(SOUND_PATH_3 + 'video-game-7.ogg')
         game.mixer.music.set_volume(0.5)
         game.mixer.music.play(-1)
 
@@ -897,6 +901,8 @@ class Game(object):
         # check if obstacle is hit and perform related action
         for hit_obstacle in game.sprite.spritecollide(player, self.obstacle_pool, True):
 
+            self.obstacle_hit.play()
+
             # type 0 obstacle hit
             if(hit_obstacle.type == 0):
                 # freeze all other players for N seconds.
@@ -984,6 +990,8 @@ class Game(object):
 
         self.screen.fill(BLACK)
 
+        self.level_victory.play()
+
         # display screen header
         font = game.font.Font('freesansbold.ttf', 45)
         surf = font.render("PLAYER STATISTICS", True, WHITE, BLACK)
@@ -1036,7 +1044,7 @@ class Game(object):
         game.display.update()
         self.fps_clock.tick(FPS)
 
-        game.time.wait(4000)
+        game.time.wait(5500)
 
     ###########################################################################
     def showGameOverScreen(self):
