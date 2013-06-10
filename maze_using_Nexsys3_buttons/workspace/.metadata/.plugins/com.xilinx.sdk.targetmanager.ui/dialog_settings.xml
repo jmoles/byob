@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<section name="Workbench">
+	<item value="bootloop" key="embsys_hw_platform-microblaze_0-initElf"/>
+	<item value="E:\Embedded_System\Projects\maze_using_buttons\workspace\embsys_hw_platform\system.bit" key="embsys_hw_platform-bitFile"/>
+	<item value="E:\Embedded_System\Projects\maze_using_buttons\workspace\embsys_hw_platform\system_bd.bmm" key="embsys_hw_platform-bmmFile"/>
+</section>
