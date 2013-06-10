@@ -504,7 +504,7 @@ class Game(object):
         self.award_points = 100
 
         # current game level
-        self.current_level = 0
+        self.current_level = 1
 
         # last player finished tracking
         self.players_finished = 0 
@@ -536,11 +536,13 @@ class Game(object):
         self.obstacle_pool = game.sprite.Group()
 
         # load game sounds
-        self.game_start_sound    = game.mixer.Sound(SOUND_PATH + 'game_start.wav') 
         self.next_level_sound    = game.mixer.Sound(SOUND_PATH + 'next_level.wav') 
-        self.level_victory_sound = game.mixer.Sound(SOUND_PATH + 'level_victory.wav') 
-        self.game_over_sound     = game.mixer.Sound(SOUND_PATH + 'game_over.wav') 
-        self.finish_reached      = game.mixer.Sound(SOUND_PATH + 'finish_reached.wav') 
+        self.game_over_sound     = game.mixer.Sound('../assets/audio/shawshank73/game_over.ogg') 
+        self.finish_reached      = game.mixer.Sound('../assets/audio/shawshank73/winner.ogg') 
+        self.sound_round_one     = game.mixer.Sound('../assets/audio/shawshank73/round1.ogg')
+        self.sound_round_two     = game.mixer.Sound('../assets/audio/shawshank73/round2.ogg')
+        self.sound_round_three   = game.mixer.Sound('../assets/audio/shawshank73/round3.ogg')
+        self.sound_round_final   = game.mixer.Sound('../assets/audio/shawshank73/roundfinal.ogg')
 
         # create finish point object
         width  = self.maze_width
@@ -627,7 +629,7 @@ class Game(object):
         self.showGameStartScreen()
         self.showPlayerSelectScreen()
 
-        for level in range(MAX_GAME_LEVELS):
+        for level in range(1, MAX_GAME_LEVELS + 1):
             self.showNewLevelScreen(level)
             self.startLevel()
             self.showPlayerVictoryScreen()
@@ -642,7 +644,6 @@ class Game(object):
 
         flash = True
 
-        self.game_start_sound.play()
         splash = game.image.load(OTHER_PATH + 'splash.png')
        
         x = self.screen.get_rect().centerx - (splash.get_width() / 2)
@@ -688,7 +689,7 @@ class Game(object):
         game.display.update()
         self.fps_clock.tick(FPS)
         
-        game.time.wait(5000)
+        game.time.wait(0)
 
     ###########################################################################
     def showNewLevelScreen(self, level):
@@ -697,6 +698,15 @@ class Game(object):
         count = 0
         progress = ""
         message = "LOADING LEVEL %d" % level
+
+        if(level == 1):
+            self.sound_round_one.play()
+        elif(level == 2):
+            self.sound_round_two.play()
+        elif(level == 3):
+            self.sound_round_three.play()
+        elif(level == 4):
+            self.sound_round_final.play()
 
         self.current_level = level
         self.maze.generateNewMaze()
@@ -932,8 +942,6 @@ class Game(object):
         last_score = 0
         winner     = None
 
-        # play victory sound
-        self.level_victory_sound.play()
 
         for player in self.player_pool:
             if(player.score > last_score):
