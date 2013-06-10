@@ -28,10 +28,10 @@ MAX_GAME_LEVELS  = 4    # max game levels
 MAX_GAME_PLAYERS = 4    # max game players
 MAX_TYPE_COUNT   = 6    # max obstacle types
 
-PLAYER_0 = 0
-PLAYER_1 = 1
-PLAYER_2 = 2
-PLAYER_3 = 3
+PLAYER_0 = 1
+PLAYER_1 = 2
+PLAYER_2 = 3
+PLAYER_3 = 4
 
 # obstacle apply action delay
 OBSTACLE_ACTION_DELAY = 50
@@ -374,25 +374,25 @@ class Maze(object):
         self.wall_pool.empty()
 
         # clear a 4x4 block region in each corner for player to start in.
-        for player in range(MAX_GAME_PLAYERS):
+        for player in range(1,MAX_GAME_PLAYERS+1):
 
             # player 0 (x,y) start point
-            if(player == 0): 
+            if(player == PLAYER_0): 
                 x_offset = 0
                 y_offset = 0
 
             # player 1 (x,y) start point
-            if(player == 1):
+            if(player == PLAYER_1):
                 x_offset = width - 4
                 y_offset = 0
 
             # player 2 (x,y) start point
-            if(player == 2):
+            if(player == PLAYER_2):
                 x_offset = width - 4
                 y_offset = height - 4
 
             # player 3 (x,y) start point
-            if(player == 3):
+            if(player == PLAYER_3):
                 x_offset = 0
                 y_offset = height - 4
 
@@ -565,31 +565,31 @@ class Game(object):
         h_offset = self.header_height
 
         # create new players, and add them to the player_pool
-        for player in range(MAX_GAME_PLAYERS):
+        for player in range(1, MAX_GAME_PLAYERS+1):
             name       = "Player %d" % player
             id         = player
-            color      = self.player_color[player]
-            character  = game.image.load(CHARACTER_PATH + 'player_%d.jpg' % player).convert()
+            color      = self.player_color[player-1]
+            character  = game.image.load(CHARACTER_PATH + 'player_%d.jpg' % (player-1)).convert()
             control    = None
             new_player = Player(name, id, color, character, control)
 
             # assign player 0 to Top Left of the maze
-            if(player == 0):
+            if(player == PLAYER_0):
                 x = cell_size * 2
                 y = h_offset + (cell_size * 2) 
 
             # assign player 1 to Top Right of the maze
-            if(player == 1):
+            if(player == PLAYER_1):
                 x = width - (cell_size * 3)
                 y = h_offset + (cell_size * 2)
             
             # assign player 2 to Bottom Right of the maze
-            if(player == 2):
+            if(player == PLAYER_2):
                 x = width - (cell_size * 3)
                 y = (height + h_offset) - (cell_size * 3)
             
             # assign player 3 to Bottom Left of the maze
-            if(player == 3):
+            if(player == PLAYER_3):
                 x = cell_size * 2
                 y = (height + h_offset) - (cell_size * 3)
                 
@@ -625,6 +625,11 @@ class Game(object):
     ###########################################################################
     def startGame(self):
         """Start playing the game."""
+
+        # load game music, set the volume to 50%, and start it.
+        game.mixer.music.load('../assets/audio/djgriffin/video-game-7.ogg')
+        game.mixer.music.set_volume(0.5)
+        game.mixer.music.play(-1)
 
         self.showGameStartScreen()
         self.showPlayerSelectScreen()
@@ -753,27 +758,27 @@ class Game(object):
 
                     if(event.key == K_LEFT):
                         if(event.type == KEYDOWN):
-                            self.player_pool[PLAYER_0].setDirection(LEFT)
+                            self.player_pool[PLAYER_0-1].setDirection(LEFT)
                         elif(event.type == KEYUP):
-                            self.player_pool[PLAYER_0].setDirection(STOP)
+                            self.player_pool[PLAYER_0-1].setDirection(STOP)
 
                     elif(event.key == K_RIGHT):
                         if(event.type == KEYDOWN):
-                            self.player_pool[PLAYER_0].setDirection(RIGHT)
+                            self.player_pool[PLAYER_0-1].setDirection(RIGHT)
                         elif(event.type == KEYUP):
-                            self.player_pool[PLAYER_0].setDirection(STOP)
+                            self.player_pool[PLAYER_0-1].setDirection(STOP)
 
                     elif(event.key == K_UP):
                         if(event.type == KEYDOWN):
-                            self.player_pool[PLAYER_0].setDirection(UP)
+                            self.player_pool[PLAYER_0-1].setDirection(UP)
                         elif(event.type == KEYUP):
-                            self.player_pool[PLAYER_0].setDirection(STOP)
+                            self.player_pool[PLAYER_0-1].setDirection(STOP)
 
                     elif(event.key == K_DOWN):
                         if(event.type == KEYDOWN):
-                            self.player_pool[PLAYER_0].setDirection(DOWN)
+                            self.player_pool[PLAYER_0-1].setDirection(DOWN)
                         elif(event.type == KEYUP):
-                            self.player_pool[PLAYER_0].setDirection(STOP)
+                            self.player_pool[PLAYER_0-1].setDirection(STOP)
 
                 #####################################################
                 # Handle Player 1 Events (K8/K2/K4/K6)
@@ -783,27 +788,27 @@ class Game(object):
 
                     if(event.key == K_KP4):
                         if(event.type == KEYDOWN):
-                            self.player_pool[PLAYER_1].setDirection(LEFT)
+                            self.player_pool[PLAYER_1-1].setDirection(LEFT)
                         elif(event.type == KEYUP):
-                            self.player_pool[PLAYER_1].setDirection(STOP)
+                            self.player_pool[PLAYER_1-1].setDirection(STOP)
 
                     elif(event.key == K_KP6):
                         if(event.type == KEYDOWN):
-                            self.player_pool[PLAYER_1].setDirection(RIGHT)
+                            self.player_pool[PLAYER_1-1].setDirection(RIGHT)
                         elif(event.type == KEYUP):
-                            self.player_pool[PLAYER_1].setDirection(STOP)
+                            self.player_pool[PLAYER_1-1].setDirection(STOP)
 
                     elif(event.key == K_KP8):
                         if(event.type == KEYDOWN):
-                            self.player_pool[PLAYER_1].setDirection(UP)
+                            self.player_pool[PLAYER_1-1].setDirection(UP)
                         elif(event.type == KEYUP):
-                            self.player_pool[PLAYER_1].setDirection(STOP)
+                            self.player_pool[PLAYER_1-1].setDirection(STOP)
 
                     elif(event.key == K_KP2):
                         if(event.type == KEYDOWN):
-                            self.player_pool[PLAYER_1].setDirection(DOWN)
+                            self.player_pool[PLAYER_1-1].setDirection(DOWN)
                         elif(event.type == KEYUP):
-                            self.player_pool[PLAYER_1].setDirection(STOP)
+                            self.player_pool[PLAYER_1-1].setDirection(STOP)
 
                 #####################################################
                 # Handle Player 2 Events (controller 3)
