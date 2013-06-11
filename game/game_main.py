@@ -212,6 +212,7 @@ class NexysController(object):
     ###########################################################################
     def startEventThread(self):
         """Start Nexys Serial Input Monitor Thread"""
+        self.keep_thread_alive = True
         self.event_thread = threading.Thread(target=self.pollSerialPort)
         self.event_thread.daemon = True
         self.event_thread.start()
