@@ -27,14 +27,6 @@
         android:text="@string/join_game"
         android:visibility="visible" />
 
-    <Button
-        android:id="@+id/buttonSettings"
-        android:layout_width="fill_parent"
-        android:layout_height="50sp"
-        android:layout_below="@id/buttonJoin"
-        android:onClick="onClick"
-        android:text="@string/settings" />
-
     <requestFocus />
 
 

@@ -27,14 +27,10 @@
     -->
 
         <RelativeLayout
+            android:id="@+id/directionLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_gravity="center" >
-
-            <RelativeLayout
-                android:id="@+id/directionLayout"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content" >
 
                 <Button
                     android:id="@+id/buttonUp"
@@ -71,35 +67,6 @@
                     android:layout_height="75sp"
                     android:layout_below="@id/buttonLeft"
                     android:text="@string/button_down" />
-            </RelativeLayout>
-
-            <RelativeLayout
-                android:id="@+id/buttonLayout"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_below="@id/directionLayout"
-                android:visibility="gone" >
-                
-                <View
-                    android:id="@+id/abStrut"
-                    android:layout_width="0dp"
-                    android:layout_height="0dp"
-                    android:layout_centerHorizontal="true" />
-
-                <Button
-                    android:id="@+id/buttonA"
-                    android:layout_width="fill_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_toLeftOf="@id/abStrut"
-                    android:text="@string/button_a" />
-
-                <Button
-                    android:id="@+id/buttonB"
-                    android:layout_width="fill_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_toRightOf="@id/abStrut"
-                    android:text="@string/button_b" />
-            </RelativeLayout>
 
         </RelativeLayout>
 

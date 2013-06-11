@@ -27,3 +27,10 @@
     public static int d(...);
     public static int e(...);
 }
+
+-libraryjars libs/android-support-v4.jar
+-libraryjars libs/bcprov-jdk15on-1.47.jar
+-libraryjars libs/Pubnub-Android-3.5.1.jar
+-libraryjars <java.home>/lib/rt.jar
+
+-dontwarn org.bouncycastle.crypto.params.NTRUEncryptionParameters
