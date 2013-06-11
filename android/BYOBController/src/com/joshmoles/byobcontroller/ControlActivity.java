@@ -1,3 +1,35 @@
+/**
+ * Project: ECE 544 Final Project
+ * Primary Author: Josh Moles
+ * Teammates: Dimitriy A. Labunsky, Tejashree Chaudhari, Tejas Tapsale
+ *
+ * Demonstration Date: June 11, 2013
+ * 
+ * Description: Final activitiy for when players are actually playing game.
+ * 
+ * The MIT License (MIT)
+ * 
+ * Copyright (c) 2013 Josh Moles
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
 package com.joshmoles.byobcontroller;
 
 import java.util.Hashtable;
@@ -12,8 +44,10 @@ import android.content.res.Configuration;
 import android.media.MediaPlayer;
 import android.net.ConnectivityManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.Vibrator;
 import android.provider.Settings.Secure;
+import android.support.v4.app.NavUtils;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
@@ -36,6 +70,7 @@ import com.pubnub.api.PubnubException;
 
 
 public class ControlActivity extends Activity {
+
 	
     /**
      * The instance of pubnub shared between these functions.
@@ -49,6 +84,19 @@ public class ControlActivity extends Activity {
     String lobbyCh 		= null; // The channel used as the game lobby.
     String gameCh  		= null;	// The channel actually used for game broadcast communications.
     String privGameCh 	= null; // The channel for my control communications.
+    
+    // Handler to call from other threads
+    final Handler mHandler = new Handler();
+    
+	// String for passing back to UI thread to move back up to main.
+	protected String mMessage = null;
+    
+	// Used to print message (if desired) and go back to main.
+	final Runnable mGoBackToMain = new Runnable() {
+		public void run() {
+			goBack(mMessage);
+		}
+	};
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -118,6 +166,8 @@ public class ControlActivity extends Activity {
 			    		// Game Over
 			    		Log.v(Consts.LOAD_FETCH, "Attempting to play game over audio.");
 			    		playAudio(R.raw.game_over);	
+			    		mMessage = "Game over!";
+			    		mHandler.post(mGoBackToMain);
 			    	} else if(message.toString().equals(Consts.PUBNUB_RESP_WINNER)){
 			    		// Winner
 			    		Log.v(Consts.LOAD_FETCH, "Attempting to play winner audio.");
@@ -197,6 +247,43 @@ public class ControlActivity extends Activity {
     	Vibrator vibe = (Vibrator) getApplicationContext().getSystemService(Context.VIBRATOR_SERVICE);
     	vibe.vibrate(Consts.VIBE_LENGTH);
     }
+    
+    /**
+     * Sends goodbye on the pubnub private player channel to let the game know we
+     * have left.
+     */
+    
+    private void sendGoodbye() {
+		// Send goodbye to pubnub channel
+		Hashtable<String, String> args = new Hashtable<String, String>(2);
+		args.put("channel", privGameCh);
+		args.put("message", Consts.PUBNUB_SEND_GOODBYE);
+		
+		pubnub.publish(args, new Callback() {
+		    public void successCallback(String channel, Object message) {
+		        // Do nothing
+		    }
+			
+		    public void errorCallback(String channel, Object message) {
+		    	Log.w(Consts.LOAD_FETCH, message.toString());
+		    	goBack("Error sending the goodbye message!");
+		    }
+		});
+    }
+    
+	/**
+	 * Function that prints an error for user when network connection
+	 * fails.
+	 */
+	private void goBack(String errorString) {
+		sendGoodbye();
+		pubnub.unsubscribeAll();
+		Toast.makeText(ControlActivity.this, 
+				errorString, 
+				Toast.LENGTH_SHORT).show();
+		NavUtils.navigateUpFromSameTask(this);
+		
+	}
     
 	private void handleBtnPress(String btn, int action) {
 		

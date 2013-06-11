@@ -112,7 +112,7 @@ class Pubnub():
             channel,
             '0',
             message
-        ])
+        ]) or [ 0, "Not Sent", "0" ]
 
 
     def subscribe( self, args ) :
@@ -398,4 +398,3 @@ class Pubnub():
             return json.loads( response )
         except:
             return None
-

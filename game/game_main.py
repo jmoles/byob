@@ -1,14 +1,14 @@
 #!/usr/bin/python
 ################################################################################
 # Portland State University
-# ECE-540: Embedded Design with FPGA's 
+# ECE-544: Embedded Design with FPGA's 
 # 
 # Project Members: Tejashree Chaudhari
 #                  Dimitriy A. Labunsky
 #                  Josh Moles
 #                  Tejas Tapsale
 #
-# Date: May 24th 2013 (Spring Term)
+# Demonstration Date: June 11, 2013 (Spring Term)
 #
 # Description: This is a multi-level, multi-player maze game with obstacles.
 #              Players compete to finish the maze while collecting the most 
@@ -21,7 +21,11 @@ import pygame as game
 from pygame.locals import *
 import random
 import sys
+import threading
 import os
+import uinput
+
+from lib.Pubnub import Pubnub
 
 FPS = 15                # refresh rate
 MAX_GAME_LEVELS  = 4    # max game levels
@@ -32,6 +36,8 @@ PLAYER_1 = 1
 PLAYER_2 = 2
 PLAYER_3 = 3
 PLAYER_4 = 4
+
+AUTHORS_STRING="Dimitriy A. Labunsky - Josh Moles - Tejashree Chaudhari - Tejas Tapsale"
 
 # obstacle apply action delay
 OBSTACLE_ACTION_DELAY = 50
@@ -59,8 +65,21 @@ MAROON    = (128,   0,   0)
 STOP  = 0  
 UP    = 1
 DOWN  = 2
-LEFT  = 3
+LEFT  = 3 
 RIGHT = 4
+
+# define pubnub communication strings
+PN_BTN_UP   = "-up"
+PN_BTN_DOWN = "-down"
+PN_UP       = "up"
+PN_DOWN     = "down"
+PN_LEFT     = "left"
+PN_RIGHT    = "right"
+
+# defines for controller types
+CONTROL_AVAILABLE = 0
+CONTROL_KEYBOARD  = 1
+CONTROL_ANDROID   = 2
 
 IMAGE_PATH   = './/image//'
 SOUND_PATH_1 = './/sound//'
@@ -73,20 +92,30 @@ OBSTACLE_PATH  = IMAGE_PATH + 'obstacle//'
 WALL_PATH      = IMAGE_PATH + 'wall//'
 OTHER_PATH     = IMAGE_PATH + 'other//'
 
-################################################################################
-# Controller Class
-################################################################################
-class Controller(object):
-   
-    # This is just a template for now
+# Get environment veriables and configure pubnub
+game_pass = os.environ.get('BYOB_GAME_PASS', 'demo')
+sub_key = os.environ.get('BYOB_GAME_PN_SUB', 'demo')
+pub_key = os.environ.get('BYOB_GAME_PN_PUB', 'demo')
+pubnub = Pubnub(
+    pub_key,  ## PUBLISH_KEY
+    sub_key,  ## SUBSCRIBE_KEY
+    None,    ## SECRET_KEY
+    False    ## SSL_ON?
+)
 
-    def __init__(self, type):
-        self.control_type = type
+# The lobby thread for pubnub
+lobbyThread = None
 
-    ###########################################################################
-    def getType(self):
-        """Get Controller Type"""
-        return self.control_type
+# The python-uinput device
+events = (uinput.KEY_W, 
+    uinput.KEY_A, 
+    uinput.KEY_S, 
+    uinput.KEY_D, 
+    uinput.KEY_I, 
+    uinput.KEY_J, 
+    uinput.KEY_K, 
+    uinput.KEY_L)
+device = uinput.Device(events)
 
 ################################################################################
 # Player Class
@@ -102,7 +131,7 @@ class Player(game.sprite.Sprite):
         self.image        = character             # player character
         self.rect         = character.get_rect()  # player position data (x,y)      
         self.score        = 0                     # player score 
-        self.controller   = Controller(control)   # controller object ptr
+        self.controller   = control               # controller type
         self.direction    = STOP                  # move direction
         self.is_alive     = True                  # is player alive
         self.default_x    = 0                     # default player x coord
@@ -111,6 +140,8 @@ class Player(game.sprite.Sprite):
         self.apply_action = 0                     # how long to effect speed
         self.move_delay   = 1                     # number of moves to ignore
         self.delay_count  = 0                     # running delay counter
+        self.player_id    = 0                     # Player Android Device ID
+        self.player_thd   = None                  # Thread that Pubnub is on for player
 
     ###########################################################################
     def update(self, direction, do_update=True):
@@ -198,11 +229,6 @@ class Player(game.sprite.Sprite):
         self.apply_action = OBSTACLE_ACTION_DELAY
 
     ###########################################################################
-    def getControlType(self):
-        """Get Player Controller Type"""
-        return self.controller.getType()
-
-    ###########################################################################
     def getDirection(self):
         """Get Player Direction"""
         return self.direction
@@ -224,6 +250,156 @@ class Player(game.sprite.Sprite):
     def draw(self, screen):
         """Render player on screen."""
         screen.blit(self.image, self.rect)
+
+    ###########################################################################
+    def pubNubPlayerThreadCallback(self, message):
+        """Called when a message is received on player channel in pubNub."""
+
+        if(message.startswith("goodbye")):
+            # Player has left the game.
+            # Set controller as available and close thread.
+            self.controller = CONTROL_AVAILABLE
+            self.player_id  = 0
+            pubnub.exit()
+
+        elif(self.id == 1):
+            if(message.startswith(PN_UP)):
+                if(message.endswith(PN_BTN_UP)):
+                    device.emit(uinput.KEY_W, 0)
+                elif(message.endswith(PN_BTN_DOWN)):
+                    device.emit(uinput.KEY_W, 1)
+
+            elif(message.startswith(PN_DOWN)):
+                if(message.endswith(PN_BTN_UP)):
+                    device.emit(uinput.KEY_S, 0)
+                elif(message.endswith(PN_BTN_DOWN)):
+                    device.emit(uinput.KEY_S, 1)
+
+            elif(message.startswith(PN_LEFT)):
+                if(message.endswith(PN_BTN_UP)):
+                    device.emit(uinput.KEY_A, 0)
+                elif(message.endswith(PN_BTN_DOWN)):
+                    device.emit(uinput.KEY_A, 1)
+            elif(message.startswith(PN_RIGHT)):
+                if(message.endswith(PN_BTN_UP)):
+                    device.emit(uinput.KEY_D, 0)
+                elif(message.endswith(PN_BTN_DOWN)):
+                    device.emit(uinput.KEY_D, 1)
+        elif(self.id == 2):
+            if(message.startswith(PN_UP)):
+                if(message.endswith(PN_BTN_UP)):
+                    device.emit(uinput.KEY_W, 0)
+                elif(message.endswith(PN_BTN_DOWN)):
+                    device.emit(uinput.KEY_W, 1)
+
+            elif(message.startswith(PN_DOWN)):
+                if(message.endswith(PN_BTN_UP)):
+                    device.emit(uinput.KEY_S, 0)
+                elif(message.endswith(PN_BTN_DOWN)):
+                    device.emit(uinput.KEY_S, 1)
+
+            elif(message.startswith(PN_LEFT)):
+                if(message.endswith(PN_BTN_UP)):
+                    device.emit(uinput.KEY_A, 0)
+                elif(message.endswith(PN_BTN_DOWN)):
+                    device.emit(uinput.KEY_A, 1)
+
+            elif(message.startswith(PN_RIGHT)):
+                if(message.endswith(PN_BTN_UP)):
+                    device.emit(uinput.KEY_D, 0)
+                elif(message.endswith(PN_BTN_DOWN)):
+                    device.emit(uinput.KEY_D, 1)
+
+        elif(self.id == 3):
+            if(message.startswith(PN_UP)):
+                if(message.endswith(PN_BTN_UP)):
+                    device.emit(uinput.KEY_W, 0)
+                elif(message.endswith(PN_BTN_DOWN)):
+                    device.emit(uinput.KEY_W, 1)
+
+            elif(message.startswith(PN_DOWN)):
+                if(message.endswith(PN_BTN_UP)):
+                    device.emit(uinput.KEY_S, 0)
+                elif(message.endswith(PN_BTN_DOWN)):
+                    device.emit(uinput.KEY_S, 1)
+
+            elif(message.startswith(PN_LEFT)):
+                if(message.endswith(PN_BTN_UP)):
+                    device.emit(uinput.KEY_A, 0)
+                elif(message.endswith(PN_BTN_DOWN)):
+                    device.emit(uinput.KEY_A, 1)
+
+            elif(message.startswith(PN_RIGHT)):
+                if(message.endswith(PN_BTN_UP)):
+                    device.emit(uinput.KEY_D, 0)
+                elif(message.endswith(PN_BTN_DOWN)):
+                    device.emit(uinput.KEY_D, 1)
+        elif(self.id == 4):
+            if(message.startswith(PN_UP)):
+                if(message.endswith(PN_BTN_UP)):
+                    device.emit(uinput.KEY_I, 0)
+                elif(message.endswith(PN_BTN_DOWN)):
+                    device.emit(uinput.KEY_I, 1)
+
+            elif(message.startswith(PN_DOWN)):
+                if(message.endswith(PN_BTN_UP)):
+                    device.emit(uinput.KEY_K, 0)
+                elif(message.endswith(PN_BTN_DOWN)):
+                    device.emit(uinput.KEY_K, 1)
+
+            elif(message.startswith(PN_LEFT)):
+                if(message.endswith(PN_BTN_UP)):
+                    device.emit(uinput.KEY_J, 0)
+                elif(message.endswith(PN_BTN_DOWN)):
+                    device.emit(uinput.KEY_J, 1)
+
+            elif(message.startswith(PN_RIGHT)):
+                if(message.endswith(PN_BTN_UP)):
+                    device.emit(uinput.KEY_L, 0)
+                elif(message.endswith(PN_BTN_DOWN)):
+                    device.emit(uinput.KEY_L, 1)
+
+        return True
+
+    ###########################################################################
+    def playerPubNubThread(self):
+        """The function that the player Pubnub thread runs in itself."""
+        pubnub.subscribe({
+            'channel'  : self.player_id,
+            'callback' : self.pubNubPlayerThreadCallback
+            }) 
+
+    ###########################################################################
+    def startPubNubPlayerThread(self):
+        """Start the pubnub thread for this player."""
+        self.player_thd = threading.Thread(target=self.playerPubNubThread)
+        self.player_thd.daemon = True
+        self.player_thd.start()
+
+    ###########################################################################
+    def notifyAsWinner(self):
+        """Notifies this player that they won."""
+        if(self.controller == CONTROL_ANDROID):
+            sendPubNubMessage("game-winner")
+
+    ###########################################################################
+    def notifyAsLoser(self):
+        """Notifies this player that they lost."""
+        if(self.controller == CONTROL_ANDROID):
+            sendPubNubMessage("game-loser")
+
+    ###########################################################################
+    def sendPubNubMessage(self, message):
+        """Sends +message" over player's private pubNub channel."""
+        if(self.controller == CONTROL_ANDROID):
+            info = pubnub.publish({
+                'channel' : self.player_id,
+                'message' : message
+                })
+
+
+
+
 
 
 ###############################################################################
@@ -561,6 +737,13 @@ class Game(object):
         self.finish_point.add(finish)
 
         game.display.set_caption("B.Y.O.B")
+
+        # Start up the pubnub lobby thread
+        lobbyThread = threading.Thread(target=self.pubNubLobbyThread)
+        lobbyThread.daemon = True
+        lobbyThread.start()
+
+
         
     ###########################################################################
     def generatePlayers(self):
@@ -577,7 +760,10 @@ class Game(object):
             id         = player
             color      = self.player_color[player-1]
             character  = game.image.load(CHARACTER_PATH + 'player_%d.jpg' % (player-1)).convert()
-            control    = None
+            if (player == PLAYER_1 or player == PLAYER_2):
+                control    = CONTROL_KEYBOARD
+            else:
+                control    = CONTROL_AVAILABLE
             new_player = Player(name, id, color, character, control)
 
             # assign player 1 to Top Left of the maze
@@ -675,7 +861,7 @@ class Game(object):
                 self.renderTitleMessage(message, LIME, BLACK, 55, -offset)
                 flash = True
 
-            self.renderUserDirections("Portland State University", GREEN, BLACK, 12, -10)
+            self.renderUserDirections(AUTHORS_STRING, GREEN, BLACK, 12, -10)
 
             if(self.keyPressEventDetected()):
                 game.event.get()
@@ -791,8 +977,6 @@ class Game(object):
                 # Handle Player 2 Events (K8/K2/K4/K6)
                 #####################################################
 
-                if(event.type in [KEYDOWN, KEYUP]):
-
                     if(event.key == K_KP4):
                         if(event.type == KEYDOWN):
                             self.player_pool[PLAYER_2-1].setDirection(LEFT)
@@ -818,14 +1002,60 @@ class Game(object):
                             self.player_pool[PLAYER_2-1].setDirection(STOP)
 
                 #####################################################
-                # Handle Player 3 Events (controller 3)
+                # Handle Player 3 Events (W/A/S/D)
                 #####################################################
                 # code here
+                    if(event.key == K_a):
+                        if(event.type == KEYDOWN):
+                            self.player_pool[PLAYER_3-1].setDirection(LEFT)
+                        elif(event.type == KEYUP):
+                            self.player_pool[PLAYER_3-1].setDirection(STOP)
+
+                    elif(event.key == K_d):
+                        if(event.type == KEYDOWN):
+                            self.player_pool[PLAYER_3-1].setDirection(RIGHT)
+                        elif(event.type == KEYUP):
+                            self.player_pool[PLAYER_3-1].setDirection(STOP)
+
+                    elif(event.key == K_w):
+                        if(event.type == KEYDOWN):
+                            self.player_pool[PLAYER_3-1].setDirection(UP)
+                        elif(event.type == KEYUP):
+                            self.player_pool[PLAYER_3-1].setDirection(STOP)
+
+                    elif(event.key == K_s):
+                        if(event.type == KEYDOWN):
+                            self.player_pool[PLAYER_3-1].setDirection(DOWN)
+                        elif(event.type == KEYUP):
+                            self.player_pool[PLAYER_3-1].setDirection(STOP)
 
                 #####################################################
-                # Handle Player 4 Events (controller 4)
+                # Handle Player 4 Events (I/J/K/L)
                 #####################################################
                 # code here
+                    if(event.key == K_j):
+                        if(event.type == KEYDOWN):
+                            self.player_pool[PLAYER_4-1].setDirection(LEFT)
+                        elif(event.type == KEYUP):
+                            self.player_pool[PLAYER_4-1].setDirection(STOP)
+
+                    elif(event.key == K_l):
+                        if(event.type == KEYDOWN):
+                            self.player_pool[PLAYER_4-1].setDirection(RIGHT)
+                        elif(event.type == KEYUP):
+                            self.player_pool[PLAYER_4-1].setDirection(STOP)
+
+                    elif(event.key == K_i):
+                        if(event.type == KEYDOWN):
+                            self.player_pool[PLAYER_4-1].setDirection(UP)
+                        elif(event.type == KEYUP):
+                            self.player_pool[PLAYER_4-1].setDirection(STOP)
+
+                    elif(event.key == K_k):
+                        if(event.type == KEYDOWN):
+                            self.player_pool[PLAYER_4-1].setDirection(DOWN)
+                        elif(event.type == KEYUP):
+                            self.player_pool[PLAYER_4-1].setDirection(STOP)
 
             # Move all players
             for player in self.player_pool:
@@ -990,8 +1220,6 @@ class Game(object):
 
         self.screen.fill(BLACK)
 
-        self.level_victory.play()
-
         # display screen header
         font = game.font.Font('freesansbold.ttf', 45)
         surf = font.render("PLAYER STATISTICS", True, WHITE, BLACK)
@@ -1053,6 +1281,10 @@ class Game(object):
         flash = True
 
         self.game_over_sound.play()
+
+        # Notify players of game over.
+        for player in self.player_pool:
+            player.sendPubNubMessage("game-over")
 
         for wait in range(10):
             self.screen.fill(BLACK)
@@ -1182,6 +1414,74 @@ class Game(object):
             self.exitGame()
 
         return keyUpEvents[0].key
+
+    ###########################################################################
+    def pubNubPlayerReceiveCallback(self, message):
+        """Called when a message is received on player channel in pubNub."""
+        return True
+
+    ###########################################################################
+    def pubNubPlayerThread(self, player_id):
+        print "New player thread started"
+        # Subscribe to the player thread
+        pubnub.subscribe({
+            'channel'  : player_id,
+            'callback' : self.pubNubPlayerReceiveCallback
+            })
+
+    ###########################################################################
+    def pubNubLobbyThread(self):
+        # Subscribe to the lobby channel for the game
+        pubnub.subscribe({
+            'channel'  : ('lobby-' + game_pass),
+            'callback' : self.pubNubLobbyReceiveCallback
+            })
+
+    ###########################################################################
+    def pubNubLobbyReceiveCallback(self, message):
+        """Called when a message is received on lobby channel in pubNub."""
+
+        print message
+
+        # Determine the type of message received
+        if(message.startswith("want-to-join-byob:")):
+            # Player is wanting to join the game.
+            # If there is room, invite the player to join the game (join-game)
+            # and join their private channel for command and control.
+            # If game is full, send them "game-is-full" on their private channel.
+
+            # Extract the device ID for the player
+            this_player_id  = message.split()[1]
+
+            # Find the first player who has a controller avilable.
+            # Setting variables assuming we won't find a spot for the player.
+            message           = "game-is-full"
+
+            for player in self.player_pool:
+                if(player.controller == CONTROL_AVAILABLE):
+                    # Player is available. Mark as Android and set player_id
+                    player.controller = CONTROL_ANDROID
+                    player.player_id  = this_player_id
+                    
+                    # Set up a subscription thread for this player.
+                    player.startPubNubPlayerThread()
+
+                    # Set message to send player to join game
+                    message = "join-game"
+
+                    # Break out of the for loop
+                    break
+
+            print "Sending message: " + message
+            # Publish a message to the player with results
+            info = pubnub.publish({
+                'channel'  : player.player_id,
+                'message'  : message
+                })
+
+        return True
+
+
 
 
 ###############################################################################

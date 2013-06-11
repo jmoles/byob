@@ -1,0 +1,3 @@
+[submodule "python-uinput"]
+	path = python-uinput
+	url = https://github.com/tuomasjjrasanen/python-uinput
