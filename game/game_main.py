@@ -23,6 +23,8 @@ import random
 import sys
 import threading
 import os
+
+#sys.path.append("/usr/local/lib64/python2.7/site-packages/") # <-- Temp code
 import uinput
 
 from lib.Pubnub import Pubnub
@@ -30,7 +32,7 @@ from lib.Pubnub import Pubnub
 FPS = 15                # refresh rate
 MAX_GAME_LEVELS  = 4    # max game levels
 MAX_GAME_PLAYERS = 4    # max game players
-MAX_TYPE_COUNT   = 6    # max obstacle types
+MAX_TYPE_COUNT   = 5    # max obstacle types
 
 PLAYER_1 = 1
 PLAYER_2 = 2
@@ -99,8 +101,8 @@ pub_key = os.environ.get('BYOB_GAME_PN_PUB', 'demo')
 pubnub = Pubnub(
     pub_key,  ## PUBLISH_KEY
     sub_key,  ## SUBSCRIBE_KEY
-    None,    ## SECRET_KEY
-    False    ## SSL_ON?
+    None,     ## SECRET_KEY
+    False     ## SSL_ON?
 )
 
 # The lobby thread for pubnub
@@ -239,12 +241,13 @@ class Player(game.sprite.Sprite):
         self.direction = direction
 
     ###########################################################################
-    def resetSettings(self, direction):
+    def resetSettings(self):
         """Reset settings between levels"""
         self.speed        = 20
         self.direction    = STOP
         self.apply_action = 0
         self.move_delay   = 1
+        self.score        = 0
 
     ###########################################################################
     def draw(self, screen):
@@ -285,6 +288,7 @@ class Player(game.sprite.Sprite):
                     device.emit(uinput.KEY_D, 0)
                 elif(message.endswith(PN_BTN_DOWN)):
                     device.emit(uinput.KEY_D, 1)
+
         elif(self.id == 2):
             if(message.startswith(PN_UP)):
                 if(message.endswith(PN_BTN_UP)):
@@ -334,6 +338,7 @@ class Player(game.sprite.Sprite):
                     device.emit(uinput.KEY_D, 0)
                 elif(message.endswith(PN_BTN_DOWN)):
                     device.emit(uinput.KEY_D, 1)
+
         elif(self.id == 4):
             if(message.startswith(PN_UP)):
                 if(message.endswith(PN_BTN_UP)):
@@ -396,10 +401,6 @@ class Player(game.sprite.Sprite):
                 'channel' : self.player_id,
                 'message' : message
                 })
-
-
-
-
 
 
 ###############################################################################
@@ -680,7 +681,7 @@ class Game(object):
         self.header_height = 40
 
         # score awarded to winning player
-        self.award_points = 100
+        self.award_points = 3
 
         # current game level
         self.current_level = 1
@@ -743,8 +744,6 @@ class Game(object):
         lobbyThread.daemon = True
         lobbyThread.start()
 
-
-        
     ###########################################################################
     def generatePlayers(self):
         """Generate Players."""
@@ -760,10 +759,12 @@ class Game(object):
             id         = player
             color      = self.player_color[player-1]
             character  = game.image.load(CHARACTER_PATH + 'player_%d.jpg' % (player-1)).convert()
+
             if (player == PLAYER_1 or player == PLAYER_2):
-                control    = CONTROL_KEYBOARD
+                control = CONTROL_KEYBOARD
             else:
-                control    = CONTROL_AVAILABLE
+                control = CONTROL_AVAILABLE
+
             new_player = Player(name, id, color, character, control)
 
             # assign player 1 to Top Left of the maze
@@ -824,16 +825,18 @@ class Game(object):
         game.mixer.music.set_volume(0.5)
         game.mixer.music.play(-1)
 
-        self.showGameStartScreen()
-        self.showPlayerSelectScreen()
+        while(True):
+            self.showGameStartScreen()
+            self.showPlayerSelectScreen()
 
-        for level in range(1, MAX_GAME_LEVELS + 1):
-            self.showNewLevelScreen(level)
-            self.startLevel()
-            self.showPlayerVictoryScreen()
-            self.showPlayerStatScreen()
+            for level in range(1, MAX_GAME_LEVELS + 1):
+                self.showNewLevelScreen(level)
+                self.startLevel()
+                self.showPlayerVictoryScreen()
+                self.showPlayerStatScreen()
 
-        self.showGameOverScreen()
+            self.showGameOverScreen()
+
         self.exitGame()
     
     ###########################################################################
@@ -930,6 +933,8 @@ class Game(object):
         for player in self.player_pool:
             player.is_alive = True
             player.resetPosition()
+
+        self.resetScore()
 
     ###########################################################################
     def startLevel(self):
@@ -1172,12 +1177,6 @@ class Game(object):
                 # speed up hit player for N seconds.
                 player.goFast()
 
-            # type 5 obstacle hit
-            elif(hit_obstacle.type == 5):
-                # adds points to hit player.
-                award_points = (self.current_level) * 2
-                player.addPoints(award_points)
-
     ###########################################################################
     def showPlayerVictoryScreen(self):
         """Show Player Victory Screen."""
@@ -1301,6 +1300,10 @@ class Game(object):
 
             game.time.wait(250)
 
+        # reset each players score
+        for player in self.player_pool:
+            player.resetSettings()
+
     ###########################################################################
     def renderMaze(self, generate_new_maze = True):
         """Render Game Floor and Maze Walls."""
@@ -1382,14 +1385,14 @@ class Game(object):
         """Updates possible points to collect by winner."""
 
         # possible earn points reduced by 2 each time a player completes
-        self.award_points /= 2
+        self.award_points -= 1
 
     ###########################################################################
     def resetScore(self):
         """Resets game score back to initial value."""
 
-        # possible points per level = level * 100
-        self.award_points = 100 * (self.current_level)
+        # possible points = total number of players
+        self.award_points = (len(self.player_pool) - 1) * self.current_level
 
     ###########################################################################
     def exitGame(self):
@@ -1480,8 +1483,6 @@ class Game(object):
                 })
 
         return True
-
-
 
 
 ###############################################################################
