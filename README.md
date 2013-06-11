@@ -3,6 +3,11 @@ byob
 
 Project for ECE 544 Class
 
+Setup
+-----
+
+To run the game, the python-uinput must be installed. The submodule within python-uinput is the version used at time of demo or more information can be found at https://github.com/tuomasjjrasanen/python-uinput.
+
 Assets
 ------
 Some of the images and audio in the game are thanks to the generous work of others. Thanks to:
