@@ -20,7 +20,7 @@
 import pygame as game
 from pygame.locals import *
 import threading
-import serial
+import serial     # sudo apt-get install python-serial
 import random
 import uinput
 import sys
@@ -159,21 +159,53 @@ class NexysController(object):
     ###########################################################################
     def pollSerialPort(self):
         """Scan Serial Port for Button changes, and Push Events."""
-       
+
         self.openSerialPort()
 
         while(self.keep_thread_alive):
                     
             key_event = self.readPort()
 
-            if(key_event == "1"):
-                game.event.post(NEX_UP) 
-            elif(key_event == "4"):
-                game.event.post(NEX_DOWN)
-            elif(key_event == "8"):
-                game.event.post(NEX_RIGHT)
-            elif(key_event == "2"):
-                game.event.post(NEX_LEFT)
+            # key_even = [KEY_STATE][KEY_ENCODING]
+
+            # UP - pressed
+            if(key_event == "11"):
+                event = game.event.Event(game.USEREVENT+2, key=KEYDOWN) 
+
+            # UP - released
+            elif(key_event == "01"):
+                event = game.event.Event(game.USEREVENT+2, key=KEYUP) 
+
+
+            # DOWN - pressed
+            elif(key_event == "14"):
+                event = game.event.Event(game.USEREVENT+3, key=KEYDOWN)
+            
+            # DOWN - released
+            elif(key_event == "04"):
+                event = game.event.Event(game.USEREVENT+3, key=KEYUP)
+
+
+            # LEFT - pressed
+            elif(key_event == "12"):
+                event = game.event.Event(game.USEREVENT+4, key=KEYDOWN)
+
+            # LEFT - released
+            elif(key_event == "02"):
+                event = game.event.Event(game.USEREVENT+4, key=KEYUP)
+
+
+            # RIGHT - pressed
+            elif(key_event == "18"):
+                event = game.event.Event(game.USEREVENT+5, key=KEYDOWN)
+
+            # RIGHT - released
+            elif(key_event == "08"):
+                event = game.event.Event(game.USEREVENT+5, key=KEYUP)
+
+
+            # Add event to event queue
+            game.event.post(event)
 
         self.closeSerialPort()
 
