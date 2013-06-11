@@ -116,7 +116,16 @@ events = (uinput.KEY_W,
     uinput.KEY_I, 
     uinput.KEY_J, 
     uinput.KEY_K, 
-    uinput.KEY_L)
+    uinput.KEY_L,
+    uinput.KEY_UP, 
+    uinput.KEY_DOWN, 
+    uinput.KEY_LEFT, 
+    uinput.KEY_RIGHT,
+    uinput.KEY_KP2,
+    uinput.KEY_KP4, 
+    uinput.KEY_KP6, 
+    uinput.KEY_KP8)
+
 device = uinput.Device(events)
 
 ################################################################################
@@ -268,51 +277,51 @@ class Player(game.sprite.Sprite):
         elif(self.id == 1):
             if(message.startswith(PN_UP)):
                 if(message.endswith(PN_BTN_UP)):
-                    device.emit(uinput.KEY_W, 0)
+                    device.emit(uinput.KEY_UP, 0)
                 elif(message.endswith(PN_BTN_DOWN)):
-                    device.emit(uinput.KEY_W, 1)
+                    device.emit(uinput.KEY_UP, 1)
 
             elif(message.startswith(PN_DOWN)):
                 if(message.endswith(PN_BTN_UP)):
-                    device.emit(uinput.KEY_S, 0)
+                    device.emit(uinput.KEY_DOWN, 0)
                 elif(message.endswith(PN_BTN_DOWN)):
-                    device.emit(uinput.KEY_S, 1)
+                    device.emit(uinput.KEY_DOWN, 1)
 
             elif(message.startswith(PN_LEFT)):
                 if(message.endswith(PN_BTN_UP)):
-                    device.emit(uinput.KEY_A, 0)
+                    device.emit(uinput.KEY_LEFT, 0)
                 elif(message.endswith(PN_BTN_DOWN)):
-                    device.emit(uinput.KEY_A, 1)
+                    device.emit(uinput.KEY_LEFT, 1)
             elif(message.startswith(PN_RIGHT)):
                 if(message.endswith(PN_BTN_UP)):
-                    device.emit(uinput.KEY_D, 0)
+                    device.emit(uinput.KEY_RIGHT, 0)
                 elif(message.endswith(PN_BTN_DOWN)):
-                    device.emit(uinput.KEY_D, 1)
+                    device.emit(uinput.KEY_RIGHT, 1)
 
         elif(self.id == 2):
             if(message.startswith(PN_UP)):
                 if(message.endswith(PN_BTN_UP)):
-                    device.emit(uinput.KEY_W, 0)
+                    device.emit(uinput.KEY_KP8, 0)
                 elif(message.endswith(PN_BTN_DOWN)):
-                    device.emit(uinput.KEY_W, 1)
+                    device.emit(uinput.KEY_KP8, 1)
 
             elif(message.startswith(PN_DOWN)):
                 if(message.endswith(PN_BTN_UP)):
-                    device.emit(uinput.KEY_S, 0)
+                    device.emit(uinput.KEY_KP2, 0)
                 elif(message.endswith(PN_BTN_DOWN)):
-                    device.emit(uinput.KEY_S, 1)
+                    device.emit(uinput.KEY_KP2, 1)
 
             elif(message.startswith(PN_LEFT)):
                 if(message.endswith(PN_BTN_UP)):
-                    device.emit(uinput.KEY_A, 0)
+                    device.emit(uinput.KEY_KP4, 0)
                 elif(message.endswith(PN_BTN_DOWN)):
-                    device.emit(uinput.KEY_A, 1)
+                    device.emit(uinput.KEY_KP4, 1)
 
             elif(message.startswith(PN_RIGHT)):
                 if(message.endswith(PN_BTN_UP)):
-                    device.emit(uinput.KEY_D, 0)
+                    device.emit(uinput.KEY_KP6, 0)
                 elif(message.endswith(PN_BTN_DOWN)):
-                    device.emit(uinput.KEY_D, 1)
+                    device.emit(uinput.KEY_KP6, 1)
 
         elif(self.id == 3):
             if(message.startswith(PN_UP)):
@@ -760,7 +769,7 @@ class Game(object):
             color      = self.player_color[player-1]
             character  = game.image.load(CHARACTER_PATH + 'player_%d.jpg' % (player-1)).convert()
 
-            if (player == PLAYER_1 or player == PLAYER_2):
+            if (player == PLAYER_1):
                 control = CONTROL_KEYBOARD
             else:
                 control = CONTROL_AVAILABLE
