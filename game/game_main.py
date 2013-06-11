@@ -19,13 +19,12 @@
 
 import pygame as game
 from pygame.locals import *
-import random
-import sys
 import threading
-import os
-
-#sys.path.append("/usr/local/lib64/python2.7/site-packages/") # <-- Temp code
+import serial
+import random
 import uinput
+import sys
+import os
 
 from lib.Pubnub import Pubnub
 
@@ -69,6 +68,12 @@ UP    = 1
 DOWN  = 2
 LEFT  = 3 
 RIGHT = 4
+
+# nexys3 serial port controller events
+NEX_UP    = game.event.Event(game.USEREVENT+2)
+NEX_DOWN  = game.event.Event(game.USEREVENT+3)
+NEX_LEFT  = game.event.Event(game.USEREVENT+4)
+NEX_RIGHT = game.event.Event(game.USEREVENT+5)
 
 # define pubnub communication strings
 PN_BTN_UP   = "-up"
@@ -118,6 +123,72 @@ events = (uinput.KEY_W,
     uinput.KEY_K, 
     uinput.KEY_L)
 device = uinput.Device(events)
+
+################################################################################
+# Nexys Controller Class
+################################################################################
+class NexysController(object):
+
+    def __init__(self):
+        self.port      = None
+        self.device    = '/dev/ttyUSB0'
+        self.baud_rate = 9600
+        self.keep_thread_alive = False
+        self.event_thread = None
+
+    ###########################################################################
+    def openSerialPort(self):
+        """Open Serial Port"""
+        self.port = serial.Serial(self.device, self.baud_rate, timeout=0)
+
+    ###########################################################################
+    def closeSerialPort(self):
+        """Close Serial Port"""
+        self.port.close()
+
+    ###########################################################################
+    def readPort(self):
+        """Read Serial Port"""
+        if(self.port != None):
+            port_data = self.port.read(256)
+            return port_data
+        else:
+            print "ERROR: Serial Port is not Open."
+            return None
+
+    ###########################################################################
+    def pollSerialPort(self):
+        """Scan Serial Port for Button changes, and Push Events."""
+       
+        self.openSerialPort()
+
+        while(self.keep_thread_alive):
+                    
+            key_event = self.readPort()
+
+            if(key_event == "1"):
+                game.event.post(NEX_UP) 
+            elif(key_event == "4"):
+                game.event.post(NEX_DOWN)
+            elif(key_event == "8"):
+                game.event.post(NEX_RIGHT)
+            elif(key_event == "2"):
+                game.event.post(NEX_LEFT)
+
+        self.closeSerialPort()
+
+    ###########################################################################
+    def startEventThread(self):
+        """Start Nexys Serial Input Monitor Thread"""
+        self.event_thread = threading.Thread(target=self.pollSerialPort)
+        self.event_thread.daemon = True
+        self.event_thread.start()
+
+    ###########################################################################
+    def stopEventThread(self):
+        """Stop Nexys Serial Input Monitor Thread"""
+        self.keep_thread_alive = False
+        self.event_thread.join()
 
 ################################################################################
 # Player Class
@@ -744,6 +815,10 @@ class Game(object):
         lobbyThread.daemon = True
         lobbyThread.start()
 
+        # create nexys controller obejct
+        #self.nexysCtrl = NexysController()
+        #self.nexysCtrl.startEventThread()
+
     ###########################################################################
     def generatePlayers(self):
         """Generate Players."""
@@ -1009,7 +1084,7 @@ class Game(object):
                 #####################################################
                 # Handle Player 3 Events (W/A/S/D)
                 #####################################################
-                # code here
+
                     if(event.key == K_a):
                         if(event.type == KEYDOWN):
                             self.player_pool[PLAYER_3-1].setDirection(LEFT)
@@ -1035,28 +1110,28 @@ class Game(object):
                             self.player_pool[PLAYER_3-1].setDirection(STOP)
 
                 #####################################################
-                # Handle Player 4 Events (I/J/K/L)
+                # Handle Player 4 Events (Nexys3 - N/E/S/W)
                 #####################################################
-                # code here
-                    if(event.key == K_j):
+
+                    if(event.key == NEX_LEFT):
                         if(event.type == KEYDOWN):
                             self.player_pool[PLAYER_4-1].setDirection(LEFT)
                         elif(event.type == KEYUP):
                             self.player_pool[PLAYER_4-1].setDirection(STOP)
 
-                    elif(event.key == K_l):
+                    elif(event.key == NEX_RIGHT):
                         if(event.type == KEYDOWN):
                             self.player_pool[PLAYER_4-1].setDirection(RIGHT)
                         elif(event.type == KEYUP):
                             self.player_pool[PLAYER_4-1].setDirection(STOP)
 
-                    elif(event.key == K_i):
+                    elif(event.key == NEX_UP):
                         if(event.type == KEYDOWN):
                             self.player_pool[PLAYER_4-1].setDirection(UP)
                         elif(event.type == KEYUP):
                             self.player_pool[PLAYER_4-1].setDirection(STOP)
 
-                    elif(event.key == K_k):
+                    elif(event.key == NEX_DOWN):
                         if(event.type == KEYDOWN):
                             self.player_pool[PLAYER_4-1].setDirection(DOWN)
                         elif(event.type == KEYUP):
@@ -1398,6 +1473,7 @@ class Game(object):
     def exitGame(self):
         """Terminate game."""
 
+        self.nexysCtrl.stopEventThread()
         game.quit()
         sys.exit()
 
@@ -1458,7 +1534,7 @@ class Game(object):
 
             # Find the first player who has a controller avilable.
             # Setting variables assuming we won't find a spot for the player.
-            message           = "game-is-full"
+            message = "game-is-full"
 
             for player in self.player_pool:
                 if(player.controller == CONTROL_AVAILABLE):
