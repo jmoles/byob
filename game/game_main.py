@@ -270,9 +270,10 @@ class Player(game.sprite.Sprite):
         if(message.startswith("goodbye")):
             # Player has left the game.
             # Set controller as available and close thread.
+            print "Received goodbye from " + self.player_id + "."
             self.controller = CONTROL_AVAILABLE
             self.player_id  = 0
-            pubnub.exit()
+            self.player_thd._stop()
 
         elif(self.id == 1):
             if(message.startswith(PN_UP)):
@@ -1469,20 +1470,37 @@ class Game(object):
             # Setting variables assuming we won't find a spot for the player.
             message           = "game-is-full"
 
+            # Used to communicate if player is already in the game
+            inGame            = False
+
+            # First, need to check if this player is already registered.
             for player in self.player_pool:
-                if(player.controller == CONTROL_AVAILABLE):
-                    # Player is available. Mark as Android and set player_id
-                    player.controller = CONTROL_ANDROID
-                    player.player_id  = this_player_id
-                    
-                    # Set up a subscription thread for this player.
-                    player.startPubNubPlayerThread()
-
-                    # Set message to send player to join game
+                if(player.controller == CONTROL_ANDROID and player.player_id == this_player_id):
+                    # This player is already registered to this game.
+                    # Set message to send player to join game.
                     message = "join-game"
+                    inGame  = True
 
-                    # Break out of the for loop
+                    # Break out of the for loop.
                     break
+
+
+            # Player is not already registered. Find a spot for them.
+            if(not inGame):
+                for player in self.player_pool:
+                    if(player.controller == CONTROL_AVAILABLE):
+                        # Player is available. Mark as Android and set player_id
+                        player.controller = CONTROL_ANDROID
+                        player.player_id  = this_player_id
+                        
+                        # Set up a subscription thread for this player.
+                        player.startPubNubPlayerThread()
+    
+                        # Set message to send player to join game
+                        message = "join-game"
+    
+                        # Break out of the for loop
+                        break
 
             print "Sending message: " + message
             # Publish a message to the player with results
