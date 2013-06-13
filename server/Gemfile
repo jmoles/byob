@@ -1,0 +1,5 @@
+source "https://rubygems.org"
+gem 'builder'
+gem 'logger'
+gem 'sinatra', '1.1.0'
+gem 'pubnub', '3.3.0.7'
